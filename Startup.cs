@@ -30,6 +30,7 @@ namespace GptMemoryStore
             var dataStoreSettings = app.ApplicationServices.GetRequiredService<DataStoreSettings>();
             CreateStoreIfMissing(dataStoreSettings.MemoryStorePath);
 
+            app.UseNuciApiRequestLogging();
             app.UseNuciApiExceptionHandling();
 
             if (env.IsDevelopment())
