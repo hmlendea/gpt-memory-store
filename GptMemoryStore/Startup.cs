@@ -1,12 +1,15 @@
 using System;
 using System.IO;
-using GptMemoryStore.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NuciAPI.Middleware;
+using NuciAPI.Middleware.ExceptionHandling;
+using NuciAPI.Middleware.Logging;
+using NuciAPI.Middleware.Security;
+
+using GptMemoryStore.Configuration;
 
 namespace GptMemoryStore
 {
