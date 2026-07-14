@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Moq;
+
+using NuciDAL.Repositories;
+
+using NuciLog.Core;
+
+using NUnit.Framework;
+
 using GptMemoryStore.DataAccess.DataObjects;
 using GptMemoryStore.Service;
 using GptMemoryStore.Service.Models;
-using Moq;
-using NuciDAL.Repositories;
-using NuciLog.Core;
-using NUnit.Framework;
 
 namespace GptMemoryStore.UnitTests.Service
 {
@@ -403,7 +408,7 @@ namespace GptMemoryStore.UnitTests.Service
 
         // ── Helpers ─────────────────────────────────────────────────────────────
 
-        static GptMemory BuildTestMemory() => new()
+        private static GptMemory BuildTestMemory() => new()
         {
             Id = "test-memory-id",
             Content = "Solaire of Astora likes the sun.",
@@ -412,10 +417,10 @@ namespace GptMemoryStore.UnitTests.Service
             CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:30:00.0000000+00:00")
         };
 
-        static GptMemoryDataObject BuildTestDataObject()
+        private static GptMemoryDataObject BuildTestDataObject()
             => BuildTestDataObject("test-memory-id", "Solaire of Astora likes the sun.");
 
-        static GptMemoryDataObject BuildTestDataObject(string id, string content) => new()
+        private static GptMemoryDataObject BuildTestDataObject(string id, string content) => new()
         {
             Id = id,
             CreatedTimestamp = "2012-09-05T10:30:00.0000000+00:00",
@@ -426,3 +431,4 @@ namespace GptMemoryStore.UnitTests.Service
         };
     }
 }
+

@@ -1,11 +1,14 @@
+using System;
+
 using Microsoft.AspNetCore.Mvc;
+
 using NuciAPI.Controllers;
+
+using GptMemoryStore.Api.Requests;
+using GptMemoryStore.Api.Responses;
 using GptMemoryStore.Configuration;
 using GptMemoryStore.Service;
-using GptMemoryStore.Api.Requests;
 using GptMemoryStore.Service.Models;
-using System;
-using GptMemoryStore.Api.Responses;
 
 namespace GptMemoryStore.Api.Controllers
 {
@@ -15,41 +18,42 @@ namespace GptMemoryStore.Api.Controllers
         IMemoryService service,
         SecuritySettings securitySettings) : NuciApiController
     {
-        static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
+        private static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
 
-        readonly NuciApiAuthorisation authorisation = NuciApiAuthorisation.ApiKey(securitySettings.ApiKey);
+        private NuciApiAuthorisation Authorisation
+            => NuciApiAuthorisation.ApiKey(securitySettings.ApiKey);
 
         [HttpPost]
         public ActionResult Create([FromBody] CreateMemoryRequest request)
             => ProcessRequest(
                 request,
-                () => service.Create(new GptMemory()
+                () => service.Create(new()
                 {
                     Content = request.Content,
                     Source = request.Source,
                     Confidence = request.Confidence
                 }),
-                authorisation);
+                Authorisation);
 
         [HttpGet]
         public ActionResult Get()
             => ProcessRequest(
                 new GetMemoriesRequest(),
-                () => new GptMemoriesResponse(service.Get()),
-                authorisation);
+                () => new GetMemoriesResponse(service.Get()),
+                Authorisation);
 
         [HttpGet("{id}")]
         public ActionResult Get([FromRoute(Name = "id")] string id)
-             => ProcessRequest(
+            => ProcessRequest(
                 new GetMemoryRequest { Id = id },
-                () => new GptMemoryResponse(service.Get(id)),
-                authorisation);
+                () => new GetMemoryResponse(service.Get(id)),
+                Authorisation);
 
         [HttpPut]
         public ActionResult Update([FromBody] UpdateMemoryRequest request)
             => ProcessRequest(
                 request,
-                () => service.Update(new GptMemory()
+                () => service.Update(new()
                 {
                     Id = request.Id,
                     UpdatedDateTime = DateTimeOffset.Now,
@@ -57,13 +61,13 @@ namespace GptMemoryStore.Api.Controllers
                     Source = request.Source,
                     Confidence = request.Confidence
                 }),
-                authorisation);
+                Authorisation);
 
         [HttpDelete("{id}")]
         public ActionResult Delete([FromRoute(Name = "id")] string id)
-             => ProcessRequest(
+            => ProcessRequest(
                 new DeleteMemoryRequest { Id = id },
                 () => service.Delete(id),
-                authorisation);
+                Authorisation);
     }
 }

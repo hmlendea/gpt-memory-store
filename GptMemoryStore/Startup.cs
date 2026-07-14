@@ -1,10 +1,12 @@
 using System;
 using System.IO;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
 using NuciAPI.Middleware.ExceptionHandling;
 using NuciAPI.Middleware.Logging;
 using NuciAPI.Middleware.Security;
@@ -29,8 +31,8 @@ namespace GptMemoryStore
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // Ensure the stores exist
-            var dataStoreSettings = app.ApplicationServices.GetRequiredService<DataStoreSettings>();
+            // Ensure the stores exist.
+            DataStoreSettings dataStoreSettings = app.ApplicationServices.GetRequiredService<DataStoreSettings>();
             CreateStoreIfMissing(dataStoreSettings.MemoryStorePath);
 
             app.UseNuciApiRequestLogging();
@@ -46,18 +48,14 @@ namespace GptMemoryStore
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
         }
 
-        static void CreateStoreIfMissing(string storePath)
+        private static void CreateStoreIfMissing(string storePath)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(storePath);
 
-            var storeDirectory = Path.GetDirectoryName(storePath);
+            string? storeDirectory = Path.GetDirectoryName(storePath);
 
             if (!Directory.Exists(storeDirectory))
             {
