@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using NuciDAL.Repositories;
+
+using NuciLog.Core;
+
 using GptMemoryStore.DataAccess.DataObjects;
 using GptMemoryStore.Logging;
 using GptMemoryStore.Service.Mapping;
 using GptMemoryStore.Service.Models;
-using NuciDAL.Repositories;
-using NuciLog.Core;
 
 namespace GptMemoryStore.Service
 {
@@ -16,7 +19,7 @@ namespace GptMemoryStore.Service
     {
         public void Create(GptMemory memory)
         {
-            List<LogInfo> logInfos =
+            IEnumerable<LogInfo> logInfos =
             [
                 new LogInfo(MyLogInfoKey.Id, memory.Id)
             ];
@@ -53,7 +56,7 @@ namespace GptMemoryStore.Service
 
         public GptMemory Get(string id)
         {
-            List<LogInfo> logInfos =
+            IEnumerable<LogInfo> logInfos =
             [
                 new LogInfo(MyLogInfoKey.Id, id)
             ];
@@ -119,7 +122,7 @@ namespace GptMemoryStore.Service
 
         public void Update(GptMemory memory)
         {
-            List<LogInfo> logInfos =
+            IEnumerable<LogInfo> logInfos =
             [
                 new LogInfo(MyLogInfoKey.Id, memory.Id)
             ];
@@ -158,7 +161,7 @@ namespace GptMemoryStore.Service
 
         public void Delete(string id)
         {
-            List<LogInfo> logInfos =
+            IEnumerable<LogInfo> logInfos =
             [
                 new LogInfo(MyLogInfoKey.Id, id)
             ];

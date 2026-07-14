@@ -2,10 +2,8 @@ using NuciDAL.DataObjects;
 
 namespace GptMemoryStore.DataAccess.DataObjects
 {
-    public class GptMemoryDataObject : EntityBase
+    public sealed class GptMemoryDataObject : EntityBase
     {
-        public string Date { get; set; }
-
         public string CreatedTimestamp { get; set; }
 
         public string UpdatedTimestamp { get; set; }

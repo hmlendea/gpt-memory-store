@@ -7,14 +7,14 @@ using NUnit.Framework;
 namespace GptMemoryStore.UnitTests.Api.Responses
 {
     [TestFixture]
-    public sealed class GptMemoriesResponseTests
+    public sealed class GetMemoriesResponseTests
     {
         // ── Constructor / Count ─────────────────────────────────────────────────
 
         [Test]
         public void GivenEmptyMemories_WhenConstructing_ThenCountIsZero()
         {
-            GptMemoriesResponse response = new([]);
+            GetMemoriesResponse response = new([]);
 
             Assert.That(response.Count, Is.EqualTo(0));
         }
@@ -22,7 +22,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         [Test]
         public void GivenEmptyMemories_WhenConstructing_ThenMemoriesListIsEmpty()
         {
-            GptMemoriesResponse response = new([]);
+            GetMemoriesResponse response = new([]);
 
             Assert.That(response.Memories, Is.Empty);
         }
@@ -30,7 +30,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         [Test]
         public void GivenThreeMemories_WhenConstructing_ThenCountIsThree()
         {
-            GptMemoriesResponse response = new(
+            GetMemoriesResponse response = new(
             [
                 BuildTestMemory("id-1", "Content 1"),
                 BuildTestMemory("id-2", "Content 2"),
@@ -45,7 +45,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GptMemory memory = BuildTestMemory("id-613", "Solaire of Astora likes the sun.");
 
-            GptMemoriesResponse response = new([memory]);
+            GetMemoriesResponse response = new([memory]);
 
             Assert.That(response.Memories, Has.Count.EqualTo(1));
             Assert.That(response.Memories[0].Id, Is.EqualTo(memory.Id));
@@ -54,7 +54,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         [Test]
         public void GivenSingleMemory_WhenConstructing_ThenCountEqualsMemoriesCount()
         {
-            GptMemoriesResponse response = new([BuildTestMemory("id-1", "Content")]);
+            GetMemoriesResponse response = new([BuildTestMemory("id-1", "Content")]);
 
             Assert.That(response.Count, Is.EqualTo(response.Memories.Count));
         }
@@ -70,7 +70,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory laterUpdated = BuildTestMemory("id-2", "Content 2");
             laterUpdated.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
 
-            GptMemoriesResponse response = new([earlierUpdated, laterUpdated]);
+            GetMemoriesResponse response = new([earlierUpdated, laterUpdated]);
 
             Assert.That(response.Memories[0].Id, Is.EqualTo("id-2"));
             Assert.That(response.Memories[1].Id, Is.EqualTo("id-1"));
@@ -87,7 +87,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             later.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
             later.UpdatedDateTime = null;
 
-            GptMemoriesResponse response = new([earlier, later]);
+            GetMemoriesResponse response = new([earlier, later]);
 
             Assert.That(response.Memories[0].Id, Is.EqualTo("id-2"));
             Assert.That(response.Memories[1].Id, Is.EqualTo("id-1"));
@@ -104,7 +104,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             neverUpdatedMemory.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T11:00:00.0000000+00:00");
             neverUpdatedMemory.UpdatedDateTime = null;
 
-            GptMemoriesResponse response = new([neverUpdatedMemory, updatedMemory]);
+            GetMemoriesResponse response = new([neverUpdatedMemory, updatedMemory]);
 
             Assert.That(response.Memories[0].Id, Is.EqualTo("updated-id"));
             Assert.That(response.Memories[1].Id, Is.EqualTo("never-updated-id"));
@@ -123,7 +123,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             laterCreated.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T09:00:00.0000000+00:00");
             laterCreated.UpdatedDateTime = sharedUpdatedAt;
 
-            GptMemoriesResponse response = new([earlierCreated, laterCreated]);
+            GetMemoriesResponse response = new([earlierCreated, laterCreated]);
 
             Assert.That(response.Memories[0].Id, Is.EqualTo("id-2"));
             Assert.That(response.Memories[1].Id, Is.EqualTo("id-1"));
@@ -140,7 +140,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory secondMemory = BuildTestMemory("id-2", "Content 2");
             secondMemory.CreatedDateTime = sharedCreatedAt;
 
-            GptMemoriesResponse response = new([firstMemory, secondMemory]);
+            GetMemoriesResponse response = new([firstMemory, secondMemory]);
 
             Assert.That(response.Memories, Has.Count.EqualTo(2));
         }
@@ -160,7 +160,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             newest.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
             newest.UpdatedDateTime = null;
 
-            GptMemoriesResponse response = new([oldest, middle, newest]);
+            GetMemoriesResponse response = new([oldest, middle, newest]);
 
             Assert.That(response.Memories[0].Id, Is.EqualTo("id-newest"));
             Assert.That(response.Memories[1].Id, Is.EqualTo("id-middle"));
@@ -176,7 +176,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory lastUpdated = BuildTestMemory("id-last", "Last content");
             lastUpdated.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
 
-            GptMemoriesResponse response = new([firstUpdated, lastUpdated]);
+            GetMemoriesResponse response = new([firstUpdated, lastUpdated]);
 
             Assert.That(response.Memories[0].Id, Is.EqualTo("id-last"));
         }

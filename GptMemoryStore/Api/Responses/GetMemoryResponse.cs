@@ -1,11 +1,12 @@
-using GptMemoryStore.Service.Models;
 using NuciAPI.Responses;
+
+using GptMemoryStore.Service.Models;
 
 namespace GptMemoryStore.Api.Responses
 {
-    public sealed class GptMemoryResponse(GptMemory memory) : NuciApiSuccessResponse
+    public sealed class GetMemoryResponse(GptMemory memory) : NuciApiSuccessResponse
     {
-        static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
+        private static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
 
         public string Id { get; set; } = memory.Id;
 

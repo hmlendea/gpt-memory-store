@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace GptMemoryStore.UnitTests.Api.Responses
 {
     [TestFixture]
-    public sealed class GptMemoryResponseTests
+    public sealed class GetMemoryResponseTests
     {
         static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
 
@@ -17,7 +17,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GptMemory memory = BuildTestMemory();
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Id, Is.EqualTo(memory.Id));
         }
@@ -27,7 +27,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GptMemory memory = BuildTestMemory();
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             string expectedCreatedDateTime = memory.CreatedDateTime.ToString(DateTimeFormat);
             Assert.That(response.CreatedDateTime, Is.EqualTo(expectedCreatedDateTime));
@@ -40,7 +40,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory memory = BuildTestMemory();
             memory.UpdatedDateTime = updatedAt;
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             string expectedUpdatedDateTime = updatedAt.ToString(DateTimeFormat);
             Assert.That(response.UpdatedDateTime, Is.EqualTo(expectedUpdatedDateTime));
@@ -52,7 +52,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory memory = BuildTestMemory();
             memory.UpdatedDateTime = null;
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.UpdatedDateTime, Is.Null);
         }
@@ -62,7 +62,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GptMemory memory = BuildTestMemory();
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Content, Is.EqualTo(memory.Content));
         }
@@ -72,7 +72,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GptMemory memory = BuildTestMemory();
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Source, Is.EqualTo(memory.Source));
         }
@@ -82,7 +82,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GptMemory memory = BuildTestMemory();
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Confidence, Is.EqualTo(memory.Confidence));
         }
@@ -97,7 +97,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory memory = BuildTestMemory();
             memory.Confidence = confidence;
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Confidence, Is.EqualTo(confidence));
         }
@@ -108,7 +108,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory memory = BuildTestMemory();
             memory.Content = string.Empty;
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Content, Is.Empty);
         }
@@ -119,7 +119,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             GptMemory memory = BuildTestMemory();
             memory.Source = string.Empty;
 
-            GptMemoryResponse response = new(memory);
+            GetMemoryResponse response = new(memory);
 
             Assert.That(response.Source, Is.Empty);
         }
