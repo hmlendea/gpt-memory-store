@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="GptMemoryStore.UnitTests/GptMemoryStore.UnitTests.csproj" />
   <Project Path="GptMemoryStore/GptMemoryStore.csproj" />
 </Solution>
