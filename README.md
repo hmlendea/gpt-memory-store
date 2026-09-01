@@ -36,6 +36,7 @@ GPT Memory Store is an ASP.NET Core REST API that persists shared memories for G
 - [Project Structure](#project-structure)
   - [Projects and Packages](#projects-and-packages)
   - [Directories](#directories)
+  - [Architecture](#architecture)
 - [Deployment](#deployment)
   - [Backup and Restore](#backup-and-restore)
 - [Contributing](#contributing)
@@ -240,6 +241,10 @@ The solution separates the ASP.NET Core service from its NUnit test project. Wit
 | `GptMemoryStore/Service` | Memory operations, domain models, and mappings |
 | `GptMemoryStore/Logging` | Structured operation and context identifiers |
 | `GptMemoryStore.UnitTests` | Unit tests for service and response behaviour |
+
+## 🏛️ Architecture
+
+[ARCHITECTURE.md](ARCHITECTURE.md) documents the current system context, component boundaries, runtime and CRUD flows, data model, operational constraints, compatibility contracts, and verification coverage.
 
 ## 🚢 Deployment
 
