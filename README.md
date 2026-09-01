@@ -40,6 +40,7 @@ GPT Memory Store is an ASP.NET Core REST API that persists shared memories for G
 - [Deployment](#deployment)
   - [Backup and Restore](#backup-and-restore)
 - [Contributing](#contributing)
+- [Security Policy](#security-policy)
 - [Project Engagement](#project-engagement)
 - [License](#license)
 
@@ -268,6 +269,10 @@ When doing so, please:
 - Revise the documentation when functionality changes
 - Properly test all modifications, including edge cases and error conditions
 - Add tests for additional or modified functionality
+
+## 🛡️ Security Policy
+
+Report vulnerabilities according to the [security policy](SECURITY.md). Please refrain from public disclosure until maintainers have had an opportunity to validate and remediate the issue.
 
 ## 💝 Project Engagement
 
