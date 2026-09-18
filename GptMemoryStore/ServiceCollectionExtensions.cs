@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-using NuciDAL.Repositories;
+using NuciDAL.DependencyInjection;
 
 using NuciLog;
 using NuciLog.Configuration;
@@ -40,8 +40,7 @@ namespace GptMemoryStore
 
         public static IServiceCollection AddCustomServices(this IServiceCollection services) => services
             .AddSingleton<IMemoryService, MemoryService>()
-            .AddSingleton<IFileRepository<GptMemoryDataObject>>(
-                serviceProvider => new JsonRepository<GptMemoryDataObject>(dataStoreSettings.MemoryStorePath))
+            .AddJsonRepository<GptMemoryDataObject>(() => dataStoreSettings.MemoryStorePath)
             .AddSingleton<ILogger, NuciLogger>();
     }
 }

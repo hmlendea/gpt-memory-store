@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GptMemoryStore.Api.Responses;
 using GptMemoryStore.Service.Models;
 using NUnit.Framework;
@@ -47,8 +48,8 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([memory]);
 
-            Assert.That(response.Memories, Has.Count.EqualTo(1));
-            Assert.That(response.Memories[0].Id, Is.EqualTo(memory.Id));
+            Assert.That(response.Memories, Has.Exactly(1).Items);
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo(memory.Id));
         }
 
         [Test]
@@ -56,7 +57,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         {
             GetMemoriesResponse response = new([BuildTestMemory("id-1", "Content")]);
 
-            Assert.That(response.Count, Is.EqualTo(response.Memories.Count));
+            Assert.That(response.Count, Is.EqualTo(response.Memories.Count()));
         }
 
         // ── Ordering ────────────────────────────────────────────────────────────
@@ -72,8 +73,8 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([earlierUpdated, laterUpdated]);
 
-            Assert.That(response.Memories[0].Id, Is.EqualTo("id-2"));
-            Assert.That(response.Memories[1].Id, Is.EqualTo("id-1"));
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-2"));
+            Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-1"));
         }
 
         [Test]
@@ -89,8 +90,8 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([earlier, later]);
 
-            Assert.That(response.Memories[0].Id, Is.EqualTo("id-2"));
-            Assert.That(response.Memories[1].Id, Is.EqualTo("id-1"));
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-2"));
+            Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-1"));
         }
 
         [Test]
@@ -106,8 +107,8 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([neverUpdatedMemory, updatedMemory]);
 
-            Assert.That(response.Memories[0].Id, Is.EqualTo("updated-id"));
-            Assert.That(response.Memories[1].Id, Is.EqualTo("never-updated-id"));
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo("updated-id"));
+            Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("never-updated-id"));
         }
 
         [Test]
@@ -125,8 +126,8 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([earlierCreated, laterCreated]);
 
-            Assert.That(response.Memories[0].Id, Is.EqualTo("id-2"));
-            Assert.That(response.Memories[1].Id, Is.EqualTo("id-1"));
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-2"));
+            Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-1"));
         }
 
         [Test]
@@ -142,7 +143,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([firstMemory, secondMemory]);
 
-            Assert.That(response.Memories, Has.Count.EqualTo(2));
+            Assert.That(response.Memories, Has.Exactly(2).Items);
         }
 
         [Test]
@@ -162,9 +163,9 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([oldest, middle, newest]);
 
-            Assert.That(response.Memories[0].Id, Is.EqualTo("id-newest"));
-            Assert.That(response.Memories[1].Id, Is.EqualTo("id-middle"));
-            Assert.That(response.Memories[2].Id, Is.EqualTo("id-oldest"));
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-newest"));
+            Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-middle"));
+            Assert.That(response.Memories.Skip(2).First().Identifier, Is.EqualTo("id-oldest"));
         }
 
         [Test]
@@ -178,7 +179,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoriesResponse response = new([firstUpdated, lastUpdated]);
 
-            Assert.That(response.Memories[0].Id, Is.EqualTo("id-last"));
+            Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-last"));
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────────

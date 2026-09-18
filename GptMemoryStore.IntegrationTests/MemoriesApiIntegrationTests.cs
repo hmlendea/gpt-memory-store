@@ -387,6 +387,12 @@ namespace GptMemoryStore.IntegrationTests
         private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response)
         {
             string responseContent = await response.Content.ReadAsStringAsync();
+            using JsonDocument responseDocument = JsonDocument.Parse(responseContent);
+
+            if (responseDocument.RootElement.TryGetProperty("content", out JsonElement contentElement))
+            {
+                return JsonDocument.Parse(contentElement.GetRawText());
+            }
 
             return JsonDocument.Parse(responseContent);
         }
