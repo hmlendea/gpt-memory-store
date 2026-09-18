@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 
 using Microsoft.AspNetCore.Mvc;
 
 using NuciAPI.Controllers;
+using NuciAPI.Responses;
 
 using GptMemoryStore.Api.Requests;
 using GptMemoryStore.Api.Responses;
@@ -14,7 +16,7 @@ namespace GptMemoryStore.Api.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class MemoriesController(
+    public sealed class MemoriesController(
         IMemoryService service,
         SecuritySettings securitySettings) : NuciApiController
     {
@@ -39,14 +41,22 @@ namespace GptMemoryStore.Api.Controllers
         public ActionResult Get()
             => ProcessRequest(
                 new GetMemoriesRequest(),
-                () => new GetMemoriesResponse(service.Get()),
+                () => new NuciApiContentResponse<GetMemoriesResponse>(new()
+                {
+                    Memories = service
+                        .Get()
+                        .OrderByDescending(memory => memory.UpdatedDateTime)
+                        .ThenByDescending(memory => memory.CreatedDateTime)
+                        .Select(memory => new GetMemoryResponse(memory))
+                }),
                 Authorisation);
 
         [HttpGet("{id}")]
         public ActionResult Get([FromRoute(Name = "id")] string id)
             => ProcessRequest(
                 new GetMemoryRequest { Id = id },
-                () => new GetMemoryResponse(service.Get(id)),
+                () => new NuciApiContentResponse<GetMemoryResponse>(
+                    new GetMemoryResponse(service.Get(id))),
                 Authorisation);
 
         [HttpPut]

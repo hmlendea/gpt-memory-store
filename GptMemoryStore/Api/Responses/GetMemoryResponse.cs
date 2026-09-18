@@ -1,23 +1,32 @@
+using System;
+using System.Text.Json.Serialization;
+
 using NuciAPI.Responses;
+using NuciSecurity.HMAC;
 
 using GptMemoryStore.Service.Models;
 
 namespace GptMemoryStore.Api.Responses
 {
-    public sealed class GetMemoryResponse(GptMemory memory) : NuciApiSuccessResponse
+    public sealed class GetMemoryResponse(GptMemory memory) : NuciApiResponseContent
     {
-        private static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
+        [HmacOrder(1)]
+        [JsonPropertyName("id")]
+        public string Identifier { get; set; } = memory.Id;
 
-        public string Id { get; set; } = memory.Id;
+        [HmacOrder(2)]
+        public DateTimeOffset CreatedDateTime { get; set; } = memory.CreatedDateTime;
 
-        public string CreatedDateTime { get; set; } = memory.CreatedDateTime.ToString(DateTimeFormat);
+        [HmacOrder(3)]
+        public DateTimeOffset? UpdatedDateTime { get; set; } = memory.UpdatedDateTime;
 
-        public string UpdatedDateTime { get; set; } = memory.UpdatedDateTime?.ToString(DateTimeFormat);
-
+        [HmacOrder(4)]
         public string Content { get; set; } = memory.Content;
 
+        [HmacOrder(5)]
         public string Source { get; set; } = memory.Source;
 
+        [HmacOrder(6)]
         public decimal Confidence { get; set; } = memory.Confidence;
     }
 }

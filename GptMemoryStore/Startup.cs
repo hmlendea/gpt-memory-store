@@ -55,7 +55,7 @@ namespace GptMemoryStore
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(storePath);
 
-            string? storeDirectory = Path.GetDirectoryName(storePath);
+            string storeDirectory = Path.GetDirectoryName(storePath);
 
             if (!Directory.Exists(storeDirectory))
             {

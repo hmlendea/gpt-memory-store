@@ -8,8 +8,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
     [TestFixture]
     public sealed class GetMemoryResponseTests
     {
-        static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
-
         // ── Constructor ─────────────────────────────────────────────────────────
 
         [Test]
@@ -19,7 +17,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoryResponse response = new(memory);
 
-            Assert.That(response.Id, Is.EqualTo(memory.Id));
+            Assert.That(response.Identifier, Is.EqualTo(memory.Id));
         }
 
         [Test]
@@ -29,8 +27,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoryResponse response = new(memory);
 
-            string expectedCreatedDateTime = memory.CreatedDateTime.ToString(DateTimeFormat);
-            Assert.That(response.CreatedDateTime, Is.EqualTo(expectedCreatedDateTime));
+            Assert.That(response.CreatedDateTime, Is.EqualTo(memory.CreatedDateTime));
         }
 
         [Test]
@@ -42,8 +39,7 @@ namespace GptMemoryStore.UnitTests.Api.Responses
 
             GetMemoryResponse response = new(memory);
 
-            string expectedUpdatedDateTime = updatedAt.ToString(DateTimeFormat);
-            Assert.That(response.UpdatedDateTime, Is.EqualTo(expectedUpdatedDateTime));
+            Assert.That(response.UpdatedDateTime, Is.EqualTo(updatedAt));
         }
 
         [Test]

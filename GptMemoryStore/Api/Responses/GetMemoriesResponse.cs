@@ -2,17 +2,41 @@ using System.Collections.Generic;
 using System.Linq;
 
 using NuciAPI.Responses;
+using NuciSecurity.HMAC;
 
 using GptMemoryStore.Service.Models;
 
 namespace GptMemoryStore.Api.Responses
 {
-    public sealed class GetMemoriesResponse(IEnumerable<GptMemory> memories) : NuciApiSuccessResponse
+    public sealed class GetMemoriesResponse : NuciApiResponseContent
     {
-        public List<GptMemory> Memories { get; set; } = [.. memories
-            .OrderByDescending(memory => memory.UpdatedDateTime)
-            .ThenByDescending(memory => memory.CreatedDateTime)];
+        [HmacOrder(1)]
+        public IEnumerable<GetMemoryResponse> Memories { get; set; }
 
-        public int Count => Memories.Count;
+        [HmacIgnore]
+        public int Count
+        {
+            get
+            {
+                if (Memories is null)
+                {
+                    return 0;
+                }
+
+                return Memories.Count();
+            }
+        }
+
+        public GetMemoriesResponse()
+        {
+        }
+
+        public GetMemoriesResponse(IEnumerable<GptMemory> memories)
+        {
+            Memories = memories
+                .OrderByDescending(memory => memory.UpdatedDateTime)
+                .ThenByDescending(memory => memory.CreatedDateTime)
+                .Select(memory => new GetMemoryResponse(memory));
+        }
     }
 }
