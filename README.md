@@ -205,6 +205,12 @@ Compile the solution first, then execute:
 dotnet test --no-build --verbosity normal
 ```
 
+The integration suite starts the API with an isolated temporary JSON store and exercises the HTTP contract:
+
+```bash
+dotnet test GptMemoryStore.IntegrationTests/GptMemoryStore.IntegrationTests.csproj
+```
+
 ### Continuous Integration
 
 The `.github/workflows/dotnet.yml` workflow restores dependencies, compiles the solution, and executes the test suite on Ubuntu for pushes and pull requests associated with `master`. The setup, build, and test commands above reproduce those checks locally.
@@ -231,6 +237,7 @@ The solution separates the ASP.NET Core service from its NUnit test project. Wit
 |---------|------|---------|
 | `GptMemoryStore/GptMemoryStore.csproj` | ASP.NET Core web API | Hosts the memory endpoints, application services, persistence, and logging configuration |
 | `GptMemoryStore.UnitTests/GptMemoryStore.UnitTests.csproj` | NUnit test project | Verifies memory-service and API-response behaviour |
+| `GptMemoryStore.IntegrationTests/GptMemoryStore.IntegrationTests.csproj` | NUnit integration-test project | Verifies the hosted HTTP API, authorisation, persistence, and CRUD paths |
 
 ### Directories
 
@@ -242,6 +249,7 @@ The solution separates the ASP.NET Core service from its NUnit test project. Wit
 | `GptMemoryStore/Service` | Memory operations, domain models, and mappings |
 | `GptMemoryStore/Logging` | Structured operation and context identifiers |
 | `GptMemoryStore.UnitTests` | Unit tests for service and response behaviour |
+| `GptMemoryStore.IntegrationTests` | HTTP integration tests using an isolated application host and JSON store |
 
 ## 🏛️ Architecture
 
