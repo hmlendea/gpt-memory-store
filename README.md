@@ -153,6 +153,8 @@ The configured API key grants access to every CRUD operation. The service define
 
 ## 🛡️ Privacy and Data
 
+See [PRIVACY.md](PRIVACY.md) for a complete description of data handling, storage, retention, security, and operator responsibilities.
+
 | Data | Purpose | Storage | Retention | Optional |
 |------|---------|---------|-----------|----------|
 | Memory identifiers, timestamps, content, source, and confidence | Persistent memory operations | Configured JSON memory store | Until deleted through the API or from storage | No |
