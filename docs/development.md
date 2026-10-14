@@ -197,12 +197,12 @@ Follows standard .NET conventions with these specifics:
 
 ### Logging
 
-Use `MyOperation` and `MyLogInfoKey` for structured logging:
+Use `GptMemoryStoreOperation` and `GptMemoryStoreLogInfoKey` for structured logging:
 
 ```csharp
-logger.Info(MyOperation.CreateMemory, OperationStatus.Started,
-    new LogInfo(MyLogInfoKey.Id, memory.Id),
-    new LogInfo(MyLogInfoKey.Content, memory.Content));
+logger.Info(GptMemoryStoreOperation.CreateMemory, OperationStatus.Started,
+    new LogInfo(GptMemoryStoreLogInfoKey.Id, memory.Id),
+    new LogInfo(GptMemoryStoreLogInfoKey.Content, memory.Content));
 ```
 
 ---

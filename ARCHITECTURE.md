@@ -254,7 +254,7 @@ Every memory action creates `NuciApiAuthorisation.ApiKey` from `SecuritySettings
 
 ### Observability
 
-`MemoryService` emits started, success, and failure events using `MyOperation` and `MyLogInfoKey`. Logged context includes operation identifiers and, for several operations, content, source, confidence, or result count. NuciLogger file output is controlled by configuration. No metrics, traces, health checks, or retention policy are implemented by this repository.
+`MemoryService` emits started, success, and failure events using `GptMemoryStoreOperation` and `GptMemoryStoreLogInfoKey`. Logged context includes operation identifiers and, for several operations, content, source, confidence, or result count. NuciLogger file output is controlled by configuration. No metrics, traces, health checks, or retention policy are implemented by this repository.
 
 ### Configuration
 

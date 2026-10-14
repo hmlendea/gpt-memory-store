@@ -20,8 +20,6 @@ namespace GptMemoryStore.Api.Controllers
         IMemoryService service,
         SecuritySettings securitySettings) : NuciApiController
     {
-        private static string DateTimeFormat => "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffffffK";
-
         private NuciApiAuthorisation Authorisation
             => NuciApiAuthorisation.ApiKey(securitySettings.ApiKey);
 

@@ -31,7 +31,6 @@ namespace GptMemoryStore
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // Ensure the stores exist.
             DataStoreSettings dataStoreSettings = app.ApplicationServices.GetRequiredService<DataStoreSettings>();
             CreateStoreIfMissing(dataStoreSettings.MemoryStorePath);
 
