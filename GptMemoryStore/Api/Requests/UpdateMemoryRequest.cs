@@ -4,12 +4,12 @@ namespace GptMemoryStore.Api.Requests
 {
     public sealed class UpdateMemoryRequest : NuciApiRequest
     {
-        public string Id { get; set; }
+        public required string Id { get; set; }
 
-        public string Content { get; set; }
+        public required string Content { get; set; }
 
-        public string Source { get; set; }
+        public required string Source { get; set; }
 
-        public decimal Confidence { get; set; }
+        public required decimal Confidence { get; set; }
     }
 }
