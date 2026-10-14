@@ -21,16 +21,16 @@ namespace GptMemoryStore.Service
         {
             IEnumerable<LogInfo> logInfos =
             [
-                new LogInfo(MyLogInfoKey.Id, memory.Id)
+                new LogInfo(GptMemoryStoreLogInfoKey.Id, memory.Id)
             ];
 
             logger.Info(
-                MyOperation.CreateMemory,
+                GptMemoryStoreOperation.CreateMemory,
                 OperationStatus.Started,
                 logInfos,
-                new LogInfo(MyLogInfoKey.Content, memory.Content),
-                new LogInfo(MyLogInfoKey.Source, memory.Source),
-                new LogInfo(MyLogInfoKey.Confidence, memory.Confidence));
+                new LogInfo(GptMemoryStoreLogInfoKey.Content, memory.Content),
+                new LogInfo(GptMemoryStoreLogInfoKey.Source, memory.Source),
+                new LogInfo(GptMemoryStoreLogInfoKey.Confidence, memory.Confidence));
 
             try
             {
@@ -38,16 +38,15 @@ namespace GptMemoryStore.Service
                 repository.SaveChanges();
 
                 logger.Debug(
-                    MyOperation.CreateMemory,
+                    GptMemoryStoreOperation.CreateMemory,
                     OperationStatus.Success,
                     logInfos);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 logger.Error(
-                    MyOperation.CreateMemory,
+                    GptMemoryStoreOperation.CreateMemory,
                     OperationStatus.Failure,
-                    exception,
                     logInfos);
 
                 throw;
@@ -58,11 +57,11 @@ namespace GptMemoryStore.Service
         {
             IEnumerable<LogInfo> logInfos =
             [
-                new LogInfo(MyLogInfoKey.Id, id)
+                new LogInfo(GptMemoryStoreLogInfoKey.Id, id)
             ];
 
             logger.Info(
-                MyOperation.GetMemory,
+                GptMemoryStoreOperation.GetMemory,
                 OperationStatus.Started,
                 logInfos);
 
@@ -71,22 +70,21 @@ namespace GptMemoryStore.Service
                 GptMemory memory = repository.Get(id).ToDomainModel();
 
                 logger.Debug(
-                    MyOperation.GetMemory,
+                    GptMemoryStoreOperation.GetMemory,
                     OperationStatus.Success,
                     logInfos,
-                    new LogInfo(MyLogInfoKey.Content, memory.Content),
-                    new LogInfo(MyLogInfoKey.Source, memory.Source),
-                    new LogInfo(MyLogInfoKey.Confidence, memory.Confidence));
+                    new LogInfo(GptMemoryStoreLogInfoKey.Content, memory.Content),
+                    new LogInfo(GptMemoryStoreLogInfoKey.Source, memory.Source),
+                    new LogInfo(GptMemoryStoreLogInfoKey.Confidence, memory.Confidence));
 
                 return memory;
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 logger.Error(
-                    MyOperation.GetMemory,
+                    GptMemoryStoreOperation.GetMemory,
                     OperationStatus.Failure,
-                    exception,
-                    new LogInfo(MyLogInfoKey.Id, id));
+                    new LogInfo(GptMemoryStoreLogInfoKey.Id, id));
 
                 throw;
             }
@@ -95,7 +93,7 @@ namespace GptMemoryStore.Service
         public IEnumerable<GptMemory> Get()
         {
             logger.Info(
-                MyOperation.GetMemories,
+                GptMemoryStoreOperation.GetMemories,
                 OperationStatus.Started);
 
             try
@@ -103,18 +101,17 @@ namespace GptMemoryStore.Service
                 IEnumerable<GptMemory> memories = repository.GetAll().ToDomainModels();
 
                 logger.Debug(
-                    MyOperation.GetMemories,
+                    GptMemoryStoreOperation.GetMemories,
                     OperationStatus.Success,
-                    new LogInfo(MyLogInfoKey.Count, memories.Count()));
+                    new LogInfo(GptMemoryStoreLogInfoKey.Count, memories.Count()));
 
                 return memories;
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 logger.Error(
-                    MyOperation.GetMemories,
-                    OperationStatus.Failure,
-                    exception);
+                    GptMemoryStoreOperation.GetMemories,
+                    OperationStatus.Failure);
 
                 throw;
             }
@@ -124,16 +121,16 @@ namespace GptMemoryStore.Service
         {
             IEnumerable<LogInfo> logInfos =
             [
-                new LogInfo(MyLogInfoKey.Id, memory.Id)
+                new LogInfo(GptMemoryStoreLogInfoKey.Id, memory.Id)
             ];
 
             logger.Info(
-                MyOperation.UpdateMemory,
+                GptMemoryStoreOperation.UpdateMemory,
                 OperationStatus.Started,
                 logInfos,
-                new LogInfo(MyLogInfoKey.Content, memory.Content),
-                new LogInfo(MyLogInfoKey.Source, memory.Source),
-                new LogInfo(MyLogInfoKey.Confidence, memory.Confidence));
+                new LogInfo(GptMemoryStoreLogInfoKey.Content, memory.Content),
+                new LogInfo(GptMemoryStoreLogInfoKey.Source, memory.Source),
+                new LogInfo(GptMemoryStoreLogInfoKey.Confidence, memory.Confidence));
 
             try
             {
@@ -143,16 +140,15 @@ namespace GptMemoryStore.Service
                 repository.SaveChanges();
 
                 logger.Debug(
-                    MyOperation.UpdateMemory,
+                    GptMemoryStoreOperation.UpdateMemory,
                     OperationStatus.Success,
                     logInfos);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 logger.Error(
-                    MyOperation.UpdateMemory,
+                    GptMemoryStoreOperation.UpdateMemory,
                     OperationStatus.Failure,
-                    exception,
                     logInfos);
 
                 throw;
@@ -163,11 +159,11 @@ namespace GptMemoryStore.Service
         {
             IEnumerable<LogInfo> logInfos =
             [
-                new LogInfo(MyLogInfoKey.Id, id)
+                new LogInfo(GptMemoryStoreLogInfoKey.Id, id)
             ];
 
             logger.Info(
-                MyOperation.DeleteMemory,
+                GptMemoryStoreOperation.DeleteMemory,
                 OperationStatus.Started,
                 logInfos);
 
@@ -177,16 +173,15 @@ namespace GptMemoryStore.Service
                 repository.SaveChanges();
 
                 logger.Debug(
-                    MyOperation.DeleteMemory,
+                    GptMemoryStoreOperation.DeleteMemory,
                     OperationStatus.Success,
                     logInfos);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 logger.Error(
-                    MyOperation.DeleteMemory,
+                    GptMemoryStoreOperation.DeleteMemory,
                     OperationStatus.Failure,
-                    exception,
                     logInfos);
 
                 throw;

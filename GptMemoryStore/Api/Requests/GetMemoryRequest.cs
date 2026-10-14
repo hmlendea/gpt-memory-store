@@ -4,6 +4,6 @@ namespace GptMemoryStore.Api.Requests
 {
     public sealed class GetMemoryRequest : NuciApiRequest
     {
-        public string Id { get; set; }
+        public required string Id { get; set; }
     }
 }
