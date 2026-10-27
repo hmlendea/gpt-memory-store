@@ -15,6 +15,23 @@ namespace GptMemoryStore.ArchitectureTests
     public sealed class SourceFileConventionTests
     {
         [TestCase("GptMemoryStore")]
+        [TestCase("GptMemoryStore.ArchitectureTests")]
+        [TestCase("GptMemoryStore.IntegrationTests")]
+        [TestCase("GptMemoryStore.UnitTests")]
+        public void GivenHandwrittenSources_WhenCheckingSyntaxAndSemantics_ThenConventionsAreSatisfied(string projectName)
+        {
+            CSharpCompilation compilation = ArchitectureTestSources.Compilations[projectName];
+            string[] violations = [.. compilation.SyntaxTrees.SelectMany(tree =>
+                SourceConventionRules.Check(tree, compilation.GetSemanticModel(tree), projectName)
+                    .Concat(SpecialisedConventionRules.Check(tree, compilation.GetSemanticModel(tree))))];
+
+            Assert.That(violations, Is.Empty, string.Join(Environment.NewLine, violations));
+        }
+
+        [TestCase("GptMemoryStore")]
+        [TestCase("GptMemoryStore.ArchitectureTests")]
+        [TestCase("GptMemoryStore.IntegrationTests")]
+        [TestCase("GptMemoryStore.UnitTests")]
         public void GivenAProductionProject_WhenCheckingSourceFiles_ThenEachFileDefinesOneMatchingType(
             string projectName)
         {
@@ -24,16 +41,13 @@ namespace GptMemoryStore.ArchitectureTests
                 Is.True,
                 $"The required production project {projectName} must be available.");
 
-            string[] sourceFiles = EnumerateSourceFiles(projectDirectory)
+            string[] sourceFiles = [.. EnumerateSourceFiles(projectDirectory)
                 .Where(filePath => !IsGeneratedSource(filePath, File.ReadAllText(filePath)))
-                .OrderBy(filePath => filePath, StringComparer.Ordinal)
-                .ToArray();
+                .OrderBy(filePath => filePath, StringComparer.Ordinal)];
 
             Assert.That(sourceFiles, Is.Not.Empty, $"{projectName} must contain handwritten C# sources.");
 
-            string[] violations = sourceFiles
-                .SelectMany(filePath => GetConventionViolations(filePath, File.ReadAllText(filePath)))
-                .ToArray();
+            string[] violations = [.. sourceFiles.SelectMany(filePath => GetConventionViolations(filePath, File.ReadAllText(filePath)))];
 
             Assert.That(violations, Is.Empty, string.Join(Environment.NewLine, violations));
         }
@@ -64,7 +78,7 @@ namespace GptMemoryStore.ArchitectureTests
             string source,
             int expectedViolationCount)
         {
-            string[] violations = GetConventionViolations(filePath, source).ToArray();
+            string[] violations = [.. GetConventionViolations(filePath, source)];
 
             Assert.That(violations, Has.Length.EqualTo(expectedViolationCount));
             Assert.That(violations.All(violation => violation.Contains(filePath)), Is.True);
@@ -138,15 +152,14 @@ namespace GptMemoryStore.ArchitectureTests
         private static IEnumerable<string> GetConventionViolations(string filePath, string source)
         {
             SyntaxNode root = CSharpSyntaxTree.ParseText(source).GetRoot();
-            string[] typeNames = root.DescendantNodes()
+            string[] typeNames = [.. root.DescendantNodes()
                 .Where(node => node is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
                 .Select(node => node switch
                 {
                     BaseTypeDeclarationSyntax declaration => declaration.Identifier.ValueText,
                     DelegateDeclarationSyntax declaration => declaration.Identifier.ValueText,
                     _ => throw new InvalidOperationException("An unexpected type declaration was selected.")
-                })
-                .ToArray();
+                })];
 
             if (typeNames.Length != 1)
             {
