@@ -29,7 +29,10 @@ namespace GptMemoryStore.ArchitectureTests
             Assert.That(violations, Is.Empty, string.Join(Environment.NewLine, violations));
         }
 
-        private static IEnumerable<string> CheckTest(MethodDeclarationSyntax method, CSharpCompilation compilation, string projectName)
+        private static IEnumerable<string> CheckTest(
+            MethodDeclarationSyntax method,
+            CSharpCompilation compilation,
+            string projectName)
         {
             ClassDeclarationSyntax fixture = method.Ancestors().OfType<ClassDeclarationSyntax>().First();
             SemanticModel model = compilation.GetSemanticModel(method.SyntaxTree);
@@ -48,7 +51,7 @@ namespace GptMemoryStore.ArchitectureTests
                 yield return SourceConventionRules.Describe(method, "Business unit tests require Given..._When..._Then... names.");
             }
 
-            InvocationExpressionSyntax[] calls = [.. GetCalls(method, model, [])];
+            InvocationExpressionSyntax[] calls = [.. GetCalls(method, model)];
 
             if (isBusinessUnitTest && !calls.Any(call => IsAssertion(call, model)) &&
                 !method.AttributeLists.SelectMany(list => list.Attributes).Any(attribute =>
@@ -87,12 +90,17 @@ namespace GptMemoryStore.ArchitectureTests
             }
         }
 
-        private static bool HasAttribute(SyntaxNode node, string name, CSharpCompilation compilation)
+        private static bool HasAttribute(
+            SyntaxNode node,
+            string name,
+            CSharpCompilation compilation)
             => node.ChildNodes().OfType<AttributeListSyntax>().SelectMany(list => list.Attributes).Any(attribute =>
                 compilation.GetSemanticModel(node.SyntaxTree).GetSymbolInfo(attribute).Symbol is IMethodSymbol constructor &&
                 string.Equals(constructor.ContainingType.ToDisplayString(), $"NUnit.Framework.{name}Attribute", StringComparison.Ordinal));
 
-        private static bool IsAssertion(InvocationExpressionSyntax invocation, SemanticModel model)
+        private static bool IsAssertion(
+            InvocationExpressionSyntax invocation,
+            SemanticModel model)
         {
             SemanticModel actualModel = model.Compilation.GetSemanticModel(invocation.SyntaxTree);
 
@@ -101,22 +109,35 @@ namespace GptMemoryStore.ArchitectureTests
                  symbol.ContainingNamespace.ToDisplayString().StartsWith("Moq", StringComparison.Ordinal) && symbol.Name.StartsWith("Verify", StringComparison.Ordinal));
         }
 
-        private static IEnumerable<InvocationExpressionSyntax> GetCalls(MethodDeclarationSyntax method, SemanticModel model, HashSet<IMethodSymbol> visited)
+        private static IEnumerable<InvocationExpressionSyntax> GetCalls(
+            MethodDeclarationSyntax method,
+            SemanticModel model)
         {
-            foreach (InvocationExpressionSyntax call in method.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            HashSet<IMethodSymbol> visited = new(SymbolEqualityComparer.Default);
+
+            return Traverse(method, model);
+
+            IEnumerable<InvocationExpressionSyntax> Traverse(
+                MethodDeclarationSyntax declaration,
+                SemanticModel semanticModel)
             {
-                yield return call;
-
-                if (model.GetSymbolInfo(call).Symbol is not IMethodSymbol symbol || !visited.Add(symbol))
+                foreach (InvocationExpressionSyntax call in declaration.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 {
-                    continue;
-                }
+                    yield return call;
 
-                foreach (MethodDeclarationSyntax helper in symbol.DeclaringSyntaxReferences.Select(reference => reference.GetSyntax()).OfType<MethodDeclarationSyntax>())
-                {
-                    foreach (InvocationExpressionSyntax delegated in GetCalls(helper, model.Compilation.GetSemanticModel(helper.SyntaxTree), visited))
+                    if (semanticModel.GetSymbolInfo(call).Symbol is not IMethodSymbol symbol || !visited.Add(symbol))
                     {
-                        yield return delegated;
+                        continue;
+                    }
+
+                    foreach (MethodDeclarationSyntax helper in symbol.DeclaringSyntaxReferences
+                        .Select(reference => reference.GetSyntax()).OfType<MethodDeclarationSyntax>())
+                    {
+                        foreach (InvocationExpressionSyntax delegated in Traverse(
+                            helper, semanticModel.Compilation.GetSemanticModel(helper.SyntaxTree)))
+                        {
+                            yield return delegated;
+                        }
                     }
                 }
             }

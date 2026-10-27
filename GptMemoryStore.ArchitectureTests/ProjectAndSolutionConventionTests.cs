@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Xml.Linq;
 
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 using NUnit.Framework;
 
 namespace GptMemoryStore.ArchitectureTests
@@ -34,7 +36,8 @@ namespace GptMemoryStore.ArchitectureTests
 
             foreach (XElement project in solution.Elements("Project"))
             {
-                Assert.That(project.Attributes().Select(attribute => attribute.Name.LocalName), Is.EqualTo(new[] { "Path" }));
+                string[] expectedAttributes = ["Path"];
+                Assert.That(project.Attributes().Select(attribute => attribute.Name.LocalName), Is.EqualTo(expectedAttributes));
                 Assert.That(project.Elements(), Is.Empty);
                 Assert.That(File.Exists(Path.Combine(ArchitectureTestSources.Root, project.Attribute("Path")!.Value)),
                     $"Solution source {project.Attribute("Path")!.Value} must exist in the checkout.");
@@ -70,7 +73,12 @@ namespace GptMemoryStore.ArchitectureTests
                     $"{projectName}: contradictory or missing required declaration {setting.Key}={setting.Value}.");
             }
 
-            string[] packages = [.. project.Descendants("PackageReference").Select(reference => reference.Attribute("Include")?.Value ?? string.Empty)];
+            string[] packages = [.. project.Descendants("PackageReference")
+                .Select(reference => reference.Attribute("Include"))
+                .Select(attribute => attribute?.Value)
+                .OfType<string>()];
+            Assert.That(packages, Has.Length.EqualTo(project.Descendants("PackageReference").Count()),
+                $"{projectName}: package references require an Include attribute.");
             Assert.That(packages, Is.Ordered.Using<string>(StringComparer.Ordinal), $"{projectName}: package references must be alphabetical.");
             Assert.That(project.Descendants("TargetFramework").Any() || project.Descendants("TargetFrameworks").Any(),
                 $"{projectName}: declare the target framework explicitly.");
@@ -142,7 +150,7 @@ namespace GptMemoryStore.ArchitectureTests
         public void GivenProductionSources_WhenCheckingAssemblyAttributes_ThenInternalsAreNotExposed()
         {
             string[] violations = [.. ArchitectureTestSources.GetTrees("GptMemoryStore")
-                .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax>())
+                .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<AttributeSyntax>())
                 .Where(attribute => attribute.Name.ToString().Contains("InternalsVisibleTo", StringComparison.Ordinal))
                 .Select(attribute => SourceConventionRules.Describe(attribute, "Production cannot declare InternalsVisibleTo."))];
 

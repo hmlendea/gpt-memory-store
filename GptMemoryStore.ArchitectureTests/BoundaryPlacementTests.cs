@@ -30,7 +30,10 @@ namespace GptMemoryStore.ArchitectureTests
             Assert.That(violations, Is.Empty, string.Join(Environment.NewLine, violations));
         }
 
-        private static IEnumerable<string> CheckType(TypeDeclarationSyntax type, SemanticModel model, string role)
+        private static IEnumerable<string> CheckType(
+            TypeDeclarationSyntax type,
+            SemanticModel model,
+            string role)
         {
             INamedTypeSymbol symbol = model.GetDeclaredSymbol(type)!;
             string name = symbol.Name;

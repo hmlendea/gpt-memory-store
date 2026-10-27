@@ -22,7 +22,8 @@ namespace GptMemoryStore.ArchitectureTests
 
         internal static readonly string Root = FindRepositoryRoot();
 
-        internal static readonly IReadOnlyDictionary<string, CSharpCompilation> Compilations = BuildCompilations();
+        internal static readonly IReadOnlyDictionary<string, CSharpCompilation> Compilations = BuildCompilations()
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
 
         internal static IEnumerable<SyntaxTree> GetTrees(string projectName)
             => Compilations[projectName].SyntaxTrees;
@@ -97,7 +98,7 @@ namespace GptMemoryStore.ArchitectureTests
             throw new DirectoryNotFoundException("Architecture tests require a checkout containing GptMemoryStore.slnx.");
         }
 
-        private static IReadOnlyDictionary<string, CSharpCompilation> BuildCompilations()
+        private static IEnumerable<KeyValuePair<string, CSharpCompilation>> BuildCompilations()
         {
             Dictionary<string, CSharpCompilation> compilations = [];
             string runtimeAssemblies = string.Empty;

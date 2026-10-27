@@ -31,7 +31,7 @@ namespace GptMemoryStore.ArchitectureTests
                         (contractType is IArrayTypeSymbol || contractType is INamedTypeSymbol named &&
                          named.AllInterfaces.Any(contract => contract.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)) &&
                         contractType.OriginalDefinition.SpecialType != SpecialType.System_Collections_Generic_IEnumerable_T &&
-                        !string.Equals(symbol.Name, "Main", StringComparison.Ordinal))
+                        !IsFrameworkCollectionContract(symbol, contractType, model.Compilation))
                     {
                         yield return $"{symbol.Name}: collection parameters and returns must use IEnumerable<T>.";
                     }
@@ -116,6 +116,35 @@ namespace GptMemoryStore.ArchitectureTests
             {
                 yield return $"Use the built-in lowercase alias rather than {identifier.Identifier.ValueText}.";
             }
+        }
+
+        private static bool IsFrameworkCollectionContract(
+            IMethodSymbol method,
+            ITypeSymbol contractType,
+            Compilation compilation)
+        {
+            // Dependency-injection registration requires the mutable framework service contract.
+            if (SymbolEqualityComparer.Default.Equals(contractType,
+                compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.IServiceCollection")))
+            {
+                return true;
+            }
+
+            if (contractType is not IArrayTypeSymbol { Rank: 1, ElementType.SpecialType: SpecialType.System_String } ||
+                !method.IsStatic || method.Parameters.Length != 1 ||
+                !SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, contractType) ||
+                !SymbolEqualityComparer.Default.Equals(method.ContainingType,
+                    compilation.GetTypeByMetadataName("GptMemoryStore.Program")))
+            {
+                return false;
+            }
+
+            // The CLI entry point and ASP.NET host discovery require their exact string-array signatures.
+            return
+                method.Name == "Main" && method.ReturnsVoid ||
+                method.Name == "CreateHostBuilder" && method.DeclaredAccessibility == Accessibility.Public &&
+                SymbolEqualityComparer.Default.Equals(method.ReturnType,
+                    compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostBuilder"));
         }
 
         private static bool DerivesFrom(INamedTypeSymbol type, string expected)

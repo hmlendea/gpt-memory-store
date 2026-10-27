@@ -11,7 +11,10 @@ namespace GptMemoryStore.ArchitectureTests
 {
     internal static class SourceConventionRules
     {
-        internal static IEnumerable<string> Check(SyntaxTree tree, SemanticModel model, string projectName)
+        internal static IEnumerable<string> Check(
+            SyntaxTree tree,
+            SemanticModel model,
+            string projectName)
         {
             SyntaxNode root = tree.GetRoot();
 
@@ -164,7 +167,9 @@ namespace GptMemoryStore.ArchitectureTests
             }
         }
 
-        private static IEnumerable<string> CheckMember(MemberDeclarationSyntax member, SemanticModel model)
+        private static IEnumerable<string> CheckMember(
+            MemberDeclarationSyntax member,
+            SemanticModel model)
         {
             ISymbol? symbol = model.GetDeclaredSymbol(member);
 
@@ -301,7 +306,10 @@ namespace GptMemoryStore.ArchitectureTests
                     yield return "Services, controllers and Startup must use primary constructors and their parameters directly.";
                 }
 
-                if (isData && type.Members.OfType<PropertyDeclarationSyntax>().Any(property =>
+                if (isData && type.Members.OfType<PropertyDeclarationSyntax>()
+                    .Where(property => property.ExpressionBody is null &&
+                        property.AccessorList?.Accessors.All(accessor => accessor.IsKind(SyntaxKind.GetAccessorDeclaration)) != true)
+                    .Any(property =>
                     property.AccessorList is null || property.AccessorList.Accessors.Any(accessor => accessor.Body is not null || accessor.ExpressionBody is not null)))
                 {
                     yield return "Models, entities, contracts and settings require auto-properties.";
@@ -309,14 +317,18 @@ namespace GptMemoryStore.ArchitectureTests
             }
         }
 
-        private static IEnumerable<string> CheckInvocation(InvocationExpressionSyntax invocation, IMethodSymbol method, SemanticModel model)
+        private static IEnumerable<string> CheckInvocation(
+            InvocationExpressionSyntax invocation,
+            IMethodSymbol method,
+            SemanticModel model)
         {
             string owner = method.ContainingType.ToDisplayString();
 
             if ((owner is "System.DateTime" or "System.DateTimeOffset" or "System.DateOnly" or "System.TimeOnly") &&
                 method.Name is "Parse" or "TryParse" or "ParseExact" or "TryParseExact" or "ToString" &&
                 !method.Parameters.Any(parameter => parameter.Type.AllInterfaces.Concat([parameter.Type])
-                    .Any(type => string.Equals(type.ToDisplayString(), "System.IFormatProvider", StringComparison.Ordinal))) &&
+                    .Any(type => SymbolEqualityComparer.Default.Equals(
+                        type, model.Compilation.GetTypeByMetadataName("System.IFormatProvider")))) &&
                 !method.Parameters.Any(parameter => string.Equals(parameter.Name, "format", StringComparison.Ordinal)))
             {
                 yield return "Date/time parsing and formatting require an explicit format or format provider.";
@@ -369,7 +381,10 @@ namespace GptMemoryStore.ArchitectureTests
             _ => null
         };
 
-        private static IEnumerable<string> CheckNamespace(SyntaxNode root, string filePath, string projectName)
+        private static IEnumerable<string> CheckNamespace(
+            SyntaxNode root,
+            string filePath,
+            string projectName)
         {
             BaseNamespaceDeclarationSyntax[] namespaces = [.. root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>()];
 
@@ -429,7 +444,8 @@ namespace GptMemoryStore.ArchitectureTests
                 }
 
                 if ((token.IsKind(SyntaxKind.CloseBraceToken) || token.IsKind(SyntaxKind.CloseParenToken) || token.IsKind(SyntaxKind.CloseBracketToken)) &&
-                    line > 0 && string.IsNullOrWhiteSpace(lines[line - 1]))
+                    line > 0 && string.IsNullOrWhiteSpace(lines[line - 1]) &&
+                    string.IsNullOrWhiteSpace(lines[line][..tree.GetLineSpan(token.Span).StartLinePosition.Character]))
                 {
                     yield return $"{tree.FilePath}:{line + 1}: No blank line is allowed immediately before a closing delimiter.";
                 }
