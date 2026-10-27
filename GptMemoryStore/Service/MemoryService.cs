@@ -67,7 +67,7 @@ namespace GptMemoryStore.Service
 
             try
             {
-                GptMemory memory = repository.Get(id).ToDomainModel();
+                GptMemory memory = repository.Get(id).ToServiceModel();
 
                 logger.Debug(
                     GptMemoryStoreOperation.GetMemory,
@@ -98,7 +98,7 @@ namespace GptMemoryStore.Service
 
             try
             {
-                IEnumerable<GptMemory> memories = repository.GetAll().ToDomainModels();
+                IEnumerable<GptMemory> memories = repository.GetAll().ToServiceModels();
 
                 logger.Debug(
                     GptMemoryStoreOperation.GetMemories,
@@ -134,7 +134,7 @@ namespace GptMemoryStore.Service
 
             try
             {
-                memory.CreatedDateTime = repository.Get(memory.Id).ToDomainModel().CreatedDateTime;
+                memory.CreatedDateTime = repository.Get(memory.Id).ToServiceModel().CreatedDateTime;
 
                 repository.Update(memory.ToDataObject());
                 repository.SaveChanges();

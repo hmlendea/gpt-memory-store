@@ -4,7 +4,9 @@ namespace GptMemoryStore.Logging
 {
     public sealed class GptMemoryStoreOperation : Operation
     {
-        private GptMemoryStoreOperation(string name) : base(name) { }
+        private GptMemoryStoreOperation(string name) : base(name)
+        {
+        }
 
         public static Operation CreateMemory => new GptMemoryStoreOperation(nameof(CreateMemory));
 

@@ -370,7 +370,9 @@ namespace GptMemoryStore.IntegrationTests
             return await ReadJsonAsync(response);
         }
 
-        private async Task<HttpResponseMessage> SendAuthenticatedAsync(HttpMethod method, string requestUri)
+        private async Task<HttpResponseMessage> SendAuthenticatedAsync(
+            HttpMethod method,
+            string requestUri)
         {
             using HttpRequestMessage request = CreateRequest(method, requestUri);
             AddAuthorisation(request);

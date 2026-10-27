@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using Moq;
@@ -19,9 +20,9 @@ namespace GptMemoryStore.UnitTests.Service
     [TestFixture]
     public sealed class MemoryServiceTests
     {
-        Mock<IFileRepository<GptMemoryDataObject>> repositoryMock;
-        Mock<ILogger> loggerMock;
-        MemoryService service;
+        private Mock<IFileRepository<GptMemoryDataObject>> repositoryMock;
+        private Mock<ILogger> loggerMock;
+        private MemoryService service;
 
         [SetUp]
         public void SetUp()
@@ -30,8 +31,6 @@ namespace GptMemoryStore.UnitTests.Service
             loggerMock = new Mock<ILogger>();
             service = new MemoryService(repositoryMock.Object, loggerMock.Object);
         }
-
-        // ── Create ──────────────────────────────────────────────────────────────
 
         [Test]
         public void GivenValidMemory_WhenCreating_ThenRepositoryAddIsCalledWithCorrectData()
@@ -94,8 +93,6 @@ namespace GptMemoryStore.UnitTests.Service
                 Throws.TypeOf<InvalidOperationException>());
         }
 
-        // ── Get(id) ─────────────────────────────────────────────────────────────
-
         [Test]
         public void GivenMemoryExists_WhenGettingById_ThenIdIsMappedCorrectly()
         {
@@ -148,7 +145,9 @@ namespace GptMemoryStore.UnitTests.Service
 
             GptMemory result = service.Get(dataObject.Id);
 
-            DateTimeOffset expectedCreatedDateTime = DateTimeOffset.Parse(dataObject.CreatedTimestamp);
+            DateTimeOffset expectedCreatedDateTime = DateTimeOffset.Parse(
+                dataObject.CreatedTimestamp,
+                CultureInfo.InvariantCulture);
             Assert.That(result.CreatedDateTime, Is.EqualTo(expectedCreatedDateTime));
         }
 
@@ -173,7 +172,9 @@ namespace GptMemoryStore.UnitTests.Service
 
             GptMemory result = service.Get(dataObject.Id);
 
-            DateTimeOffset expectedUpdatedDateTime = DateTimeOffset.Parse(dataObject.UpdatedTimestamp);
+            DateTimeOffset expectedUpdatedDateTime = DateTimeOffset.Parse(
+                dataObject.UpdatedTimestamp,
+                CultureInfo.InvariantCulture);
             Assert.That(result.UpdatedDateTime, Is.EqualTo(expectedUpdatedDateTime));
         }
 
@@ -188,8 +189,6 @@ namespace GptMemoryStore.UnitTests.Service
                 () => service.Get("non-existent-id"),
                 Throws.TypeOf<KeyNotFoundException>());
         }
-
-        // ── Get() ───────────────────────────────────────────────────────────────
 
         [Test]
         public void GivenThreeMemoriesExist_WhenGettingAll_ThenThreeMemoriesAreReturned()
@@ -241,8 +240,6 @@ namespace GptMemoryStore.UnitTests.Service
                 () => service.Get(),
                 Throws.TypeOf<InvalidOperationException>());
         }
-
-        // ── Update ──────────────────────────────────────────────────────────────
 
         [Test]
         public void GivenValidMemory_WhenUpdating_ThenRepositoryUpdateIsCalledWithCorrectData()
@@ -328,7 +325,7 @@ namespace GptMemoryStore.UnitTests.Service
 
             repositoryMock.Verify(
                 r => r.Update(It.Is<GptMemoryDataObject>(dataObject =>
-                    dataObject.UpdatedTimestamp != null)),
+                    !Equals(dataObject.UpdatedTimestamp, null))),
                 Times.Once);
         }
 
@@ -363,8 +360,6 @@ namespace GptMemoryStore.UnitTests.Service
                 () => service.Update(new() { Id = "non-existent-id" }),
                 Throws.TypeOf<KeyNotFoundException>());
         }
-
-        // ── Delete ──────────────────────────────────────────────────────────────
 
         [Test]
         public void GivenValidId_WhenDeleting_ThenRepositoryRemoveIsCalledWithCorrectId()
@@ -406,21 +401,23 @@ namespace GptMemoryStore.UnitTests.Service
                 Throws.TypeOf<InvalidOperationException>());
         }
 
-        // ── Helpers ─────────────────────────────────────────────────────────────
-
         private static GptMemory BuildTestMemory() => new()
         {
             Id = "test-memory-id",
             Content = "Solaire of Astora likes the sun.",
             Source = "nucilandia.ro",
             Confidence = 0.95m,
-            CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:30:00.0000000+00:00")
+            CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:30:00.0000000+00:00",
+                CultureInfo.InvariantCulture)
         };
 
         private static GptMemoryDataObject BuildTestDataObject()
             => BuildTestDataObject("test-memory-id", "Solaire of Astora likes the sun.");
 
-        private static GptMemoryDataObject BuildTestDataObject(string id, string content) => new()
+        private static GptMemoryDataObject BuildTestDataObject(
+            string id,
+            string content) => new()
         {
             Id = id,
             CreatedTimestamp = "2012-09-05T10:30:00.0000000+00:00",

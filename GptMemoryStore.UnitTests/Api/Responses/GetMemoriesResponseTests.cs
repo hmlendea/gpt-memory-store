@@ -1,17 +1,17 @@
 using System;
-using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+
+using NUnit.Framework;
+
 using GptMemoryStore.Api.Responses;
 using GptMemoryStore.Service.Models;
-using NUnit.Framework;
 
 namespace GptMemoryStore.UnitTests.Api.Responses
 {
     [TestFixture]
     public sealed class GetMemoriesResponseTests
     {
-        // ── Constructor / Count ─────────────────────────────────────────────────
-
         [Test]
         public void GivenEmptyMemories_WhenConstructing_ThenCountIsZero()
         {
@@ -60,16 +60,18 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             Assert.That(response.Count, Is.EqualTo(response.Memories.Count()));
         }
 
-        // ── Ordering ────────────────────────────────────────────────────────────
-
         [Test]
         public void GivenMemoriesWithDifferentUpdatedDateTimes_WhenConstructing_ThenOrderedByUpdatedDateTimeDescending()
         {
             GptMemory earlierUpdated = BuildTestMemory("id-1", "Content 1");
-            earlierUpdated.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T08:00:00.0000000+00:00");
+            earlierUpdated.UpdatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T08:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GptMemory laterUpdated = BuildTestMemory("id-2", "Content 2");
-            laterUpdated.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
+            laterUpdated.UpdatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GetMemoriesResponse response = new([earlierUpdated, laterUpdated]);
 
@@ -81,11 +83,15 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         public void GivenMemoriesWithNullUpdatedDateTimes_WhenConstructing_ThenOrderedByCreatedDateTimeDescending()
         {
             GptMemory earlier = BuildTestMemory("id-1", "Content 1");
-            earlier.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T08:00:00.0000000+00:00");
+            earlier.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T08:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             earlier.UpdatedDateTime = null;
 
             GptMemory later = BuildTestMemory("id-2", "Content 2");
-            later.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
+            later.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             later.UpdatedDateTime = null;
 
             GetMemoriesResponse response = new([earlier, later]);
@@ -98,11 +104,17 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         public void GivenMixedMemories_WhenConstructing_ThenUpdatedDateTimeTakesPriorityInOrdering()
         {
             GptMemory updatedMemory = BuildTestMemory("updated-id", "Updated content");
-            updatedMemory.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T06:00:00.0000000+00:00");
-            updatedMemory.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T12:00:00.0000000+00:00");
+            updatedMemory.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T06:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
+            updatedMemory.UpdatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T12:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GptMemory neverUpdatedMemory = BuildTestMemory("never-updated-id", "Never updated");
-            neverUpdatedMemory.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T11:00:00.0000000+00:00");
+            neverUpdatedMemory.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T11:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             neverUpdatedMemory.UpdatedDateTime = null;
 
             GetMemoriesResponse response = new([neverUpdatedMemory, updatedMemory]);
@@ -114,14 +126,20 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         [Test]
         public void GivenMemoriesWithSameUpdatedDateTime_WhenConstructing_ThenTiesBrokenByCreatedDateTimeDescending()
         {
-            DateTimeOffset sharedUpdatedAt = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
+            DateTimeOffset sharedUpdatedAt = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GptMemory earlierCreated = BuildTestMemory("id-1", "Content 1");
-            earlierCreated.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T07:00:00.0000000+00:00");
+            earlierCreated.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T07:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             earlierCreated.UpdatedDateTime = sharedUpdatedAt;
 
             GptMemory laterCreated = BuildTestMemory("id-2", "Content 2");
-            laterCreated.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T09:00:00.0000000+00:00");
+            laterCreated.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T09:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             laterCreated.UpdatedDateTime = sharedUpdatedAt;
 
             GetMemoriesResponse response = new([earlierCreated, laterCreated]);
@@ -133,7 +151,9 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         [Test]
         public void GivenMemoriesWithSameNullUpdatedDateTimeAndSameCreatedDateTime_WhenConstructing_ThenAllMemoriesArePresent()
         {
-            DateTimeOffset sharedCreatedAt = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
+            DateTimeOffset sharedCreatedAt = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GptMemory firstMemory = BuildTestMemory("id-1", "Content 1");
             firstMemory.CreatedDateTime = sharedCreatedAt;
@@ -150,15 +170,21 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         public void GivenMemoriesWithAllNullUpdatedDateTimes_WhenConstructing_ThenMostRecentCreatedDateTimeIsFirst()
         {
             GptMemory oldest = BuildTestMemory("id-oldest", "Oldest content");
-            oldest.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T06:00:00.0000000+00:00");
+            oldest.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T06:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             oldest.UpdatedDateTime = null;
 
             GptMemory middle = BuildTestMemory("id-middle", "Middle content");
-            middle.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T08:00:00.0000000+00:00");
+            middle.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T08:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             middle.UpdatedDateTime = null;
 
             GptMemory newest = BuildTestMemory("id-newest", "Newest content");
-            newest.CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
+            newest.CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             newest.UpdatedDateTime = null;
 
             GetMemoriesResponse response = new([oldest, middle, newest]);
@@ -172,22 +198,26 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         public void GivenMemoriesWithAllNonNullUpdatedDateTimes_WhenConstructing_ThenMostRecentlyUpdatedIsFirst()
         {
             GptMemory firstUpdated = BuildTestMemory("id-first", "First content");
-            firstUpdated.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T06:00:00.0000000+00:00");
+            firstUpdated.UpdatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T06:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GptMemory lastUpdated = BuildTestMemory("id-last", "Last content");
-            lastUpdated.UpdatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00");
+            lastUpdated.UpdatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
 
             GetMemoriesResponse response = new([firstUpdated, lastUpdated]);
 
             Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-last"));
         }
 
-        // ── Helpers ─────────────────────────────────────────────────────────────
-
-        static GptMemory BuildTestMemory(string id, string content) => new()
+        private static GptMemory BuildTestMemory(string id, string content) => new()
         {
             Id = id,
-            CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:00:00.0000000+00:00"),
+            CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture),
             UpdatedDateTime = null,
             Content = content,
             Source = "nucilandia.ro",

@@ -1,15 +1,16 @@
 using System;
+using System.Globalization;
+
+using NUnit.Framework;
+
 using GptMemoryStore.Api.Responses;
 using GptMemoryStore.Service.Models;
-using NUnit.Framework;
 
 namespace GptMemoryStore.UnitTests.Api.Responses
 {
     [TestFixture]
     public sealed class GetMemoryResponseTests
     {
-        // ── Constructor ─────────────────────────────────────────────────────────
-
         [Test]
         public void GivenMemory_WhenConstructing_ThenIdIsSet()
         {
@@ -33,7 +34,9 @@ namespace GptMemoryStore.UnitTests.Api.Responses
         [Test]
         public void GivenMemoryWithUpdatedDateTime_WhenConstructing_ThenUpdatedDateTimeIsFormattedCorrectly()
         {
-            DateTimeOffset updatedAt = DateTimeOffset.Parse("2012-09-05T12:00:00.0000000+00:00");
+            DateTimeOffset updatedAt = DateTimeOffset.Parse(
+                "2012-09-05T12:00:00.0000000+00:00",
+                CultureInfo.InvariantCulture);
             GptMemory memory = BuildTestMemory();
             memory.UpdatedDateTime = updatedAt;
 
@@ -120,12 +123,12 @@ namespace GptMemoryStore.UnitTests.Api.Responses
             Assert.That(response.Source, Is.Empty);
         }
 
-        // ── Helpers ─────────────────────────────────────────────────────────────
-
-        static GptMemory BuildTestMemory() => new()
+        private static GptMemory BuildTestMemory() => new()
         {
             Id = "test-memory-id",
-            CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:30:00.0000000+00:00"),
+            CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:30:00.0000000+00:00",
+                CultureInfo.InvariantCulture),
             UpdatedDateTime = null,
             Content = "Solaire of Astora likes the sun.",
             Source = "nucilandia.ro",
