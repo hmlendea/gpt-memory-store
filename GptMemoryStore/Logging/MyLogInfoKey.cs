@@ -4,7 +4,9 @@ namespace GptMemoryStore.Logging
 {
     public sealed class GptMemoryStoreLogInfoKey : LogInfoKey
     {
-        private GptMemoryStoreLogInfoKey(string name) : base(name) { }
+        private GptMemoryStoreLogInfoKey(string name) : base(name)
+        {
+        }
 
         public static LogInfoKey Id => new GptMemoryStoreLogInfoKey(nameof(Id));
 

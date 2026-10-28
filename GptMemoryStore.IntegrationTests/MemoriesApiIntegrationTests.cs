@@ -1,5 +1,7 @@
 using System;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -15,31 +17,58 @@ namespace GptMemoryStore.IntegrationTests
     [TestFixture]
     public sealed class MemoriesApiIntegrationTests
     {
+        private string temporaryDirectory = string.Empty;
+        private IntegrationTestApplicationFactory? applicationFactory;
+        private HttpClient? client;
+
         private static string ApiKey => "integration-test-api-key";
 
         private static string JsonMediaType => "application/json";
 
-        private string temporaryDirectory;
-        private IntegrationTestApplicationFactory applicationFactory;
-        private HttpClient client;
+        private IntegrationTestApplicationFactory ApplicationFactory
+        {
+            get
+            {
+                if (applicationFactory is null)
+                {
+                    throw new InvalidOperationException("The applicationFactory field must be initialised by SetUp.");
+                }
+
+                return applicationFactory;
+            }
+        }
+
+        private HttpClient Client
+        {
+            get
+            {
+                if (client is null)
+                {
+                    throw new InvalidOperationException("The client field must be initialised by SetUp.");
+                }
+
+                return client;
+            }
+        }
 
         [SetUp]
         public void SetUp()
         {
             temporaryDirectory = Path.Combine(Path.GetTempPath(), $"gpt-memory-store-{Guid.NewGuid():N}");
             string memoryStorePath = Path.Combine(temporaryDirectory, "nested", "memories.json");
-            applicationFactory = new IntegrationTestApplicationFactory(memoryStorePath, ApiKey);
-            client = applicationFactory.CreateClient(new WebApplicationFactoryClientOptions
+            applicationFactory = new(memoryStorePath, ApiKey);
+            WebApplicationFactoryClientOptions clientOptions = new()
             {
-                BaseAddress = new Uri("https://127.0.0.1")
-            });
+                BaseAddress = new("https://127.0.0.1")
+            };
+            client = applicationFactory.CreateClient(clientOptions);
         }
 
         [TearDown]
         public void TearDown()
         {
-            client.Dispose();
-            applicationFactory.Dispose();
+            client?.Dispose();
+            applicationFactory?.Dispose();
 
             if (Directory.Exists(temporaryDirectory))
             {
@@ -50,16 +79,21 @@ namespace GptMemoryStore.IntegrationTests
         [Test]
         public void GivenMissingStore_WhenStartingApplication_ThenParentDirectoryAndEmptyStoreAreCreated()
         {
-            Assert.That(File.Exists(applicationFactory.MemoryStorePath));
-            Assert.That(File.ReadAllText(applicationFactory.MemoryStorePath), Is.EqualTo("[]"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Directory.Exists(Path.GetDirectoryName(ApplicationFactory.MemoryStorePath)));
+                Assert.That(File.Exists(ApplicationFactory.MemoryStorePath));
+                Assert.That(File.ReadAllText(ApplicationFactory.MemoryStorePath), Is.EqualTo("[]"));
+            }
+
         }
 
         [Test]
         public async Task GivenNoAuthorisationHeader_WhenGettingMemories_ThenServerErrorResponseIsReturned()
         {
-            using HttpResponseMessage response = await client.GetAsync("/Memories");
+            using HttpResponseMessage response = await Client.GetAsync("/Memories");
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+            await AssertResponseAsync(response, HttpStatusCode.InternalServerError);
         }
 
         [Test]
@@ -68,9 +102,9 @@ namespace GptMemoryStore.IntegrationTests
             using HttpRequestMessage request = CreateRequest(HttpMethod.Get, "/Memories");
             request.Headers.Authorization = new("Bearer", "incorrect-api-key");
 
-            using HttpResponseMessage response = await client.SendAsync(request);
+            using HttpResponseMessage response = await Client.SendAsync(request);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+            await AssertResponseAsync(response, HttpStatusCode.InternalServerError);
         }
 
         [Test]
@@ -78,7 +112,7 @@ namespace GptMemoryStore.IntegrationTests
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Get, "/Memories");
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            await AssertResponseAsync(response, HttpStatusCode.OK);
         }
 
         [Test]
@@ -87,43 +121,61 @@ namespace GptMemoryStore.IntegrationTests
             using HttpRequestMessage request = CreateRequest(HttpMethod.Get, "/Memories");
             request.Headers.TryAddWithoutValidation("Authorization", ApiKey);
 
-            using HttpResponseMessage response = await client.SendAsync(request);
+            using HttpResponseMessage response = await Client.SendAsync(request);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            await AssertResponseAsync(response, HttpStatusCode.OK);
         }
 
         [Test]
         public async Task GivenEmptyStore_WhenGettingMemories_ThenEmptySuccessResponseIsReturned()
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Get, "/Memories");
-            JsonDocument document = await ReadJsonAsync(response);
+            using JsonDocument document = await ReadJsonAsync(response);
 
-            Assert.That(document.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(0));
-            Assert.That(document.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(0));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(document.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(0));
+                Assert.That(document.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(0));
+            }
+
         }
 
         [Test]
         public async Task GivenValidMemory_WhenCreating_ThenSuccessResponseIsReturned()
         {
-            using HttpResponseMessage response = await CreateMemoryAsync("The user prefers concise responses.", "profile", 0.95m);
+            using HttpResponseMessage response = await CreateMemoryAsync(
+                "The user prefers concise responses.",
+                "profile",
+                0.95m);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            await AssertResponseAsync(response, HttpStatusCode.OK);
         }
 
         [Test]
         public async Task GivenValidMemory_WhenCreating_ThenMemoryIsPersistedAndReturned()
         {
-            await CreateMemoryAsync("Persistent content", "integration", 0.75m);
+            using HttpResponseMessage response = await CreateMemoryAsync("Persistent content", "integration", 0.75m);
 
-            JsonDocument document = await GetMemoriesDocumentAsync();
+            using JsonDocument document = await GetMemoriesDocumentAsync();
             JsonElement memory = document.RootElement.GetProperty("memories")[0];
 
-            Assert.That(memory.GetProperty("content").GetString(), Is.EqualTo("Persistent content"));
-            Assert.That(memory.GetProperty("source").GetString(), Is.EqualTo("integration"));
-            Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.75m));
-            Assert.That(memory.GetProperty("id").GetString(), Is.Not.Empty);
-            Assert.That(memory.GetProperty("createdDateTime").GetString(), Is.Not.Empty);
-            Assert.That(memory.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            await AssertResponseAsync(response, HttpStatusCode.OK);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(memory.GetProperty("content").GetString(), Is.EqualTo("Persistent content"));
+                Assert.That(memory.GetProperty("source").GetString(), Is.EqualTo("integration"));
+                Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.75m));
+                Assert.That(Guid.TryParse(ReadRequiredString(memory, "id"), out _));
+                Assert.That(
+                    DateTimeOffset.TryParse(
+                        ReadRequiredString(memory, "createdDateTime"),
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out _));
+                Assert.That(memory.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            }
+
         }
 
         [Test]
@@ -135,10 +187,16 @@ namespace GptMemoryStore.IntegrationTests
                 0.5m,
                 "client-supplied-id");
 
-            JsonDocument document = await GetMemoriesDocumentAsync();
-            string identifier = document.RootElement.GetProperty("memories")[0].GetProperty("id").GetString();
+            using JsonDocument document = await GetMemoriesDocumentAsync();
+            string identifier = ReadRequiredString(document.RootElement.GetProperty("memories")[0], "id");
 
-            Assert.That(identifier, Is.Not.EqualTo("client-supplied-id"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(Guid.TryParse(identifier, out _));
+                Assert.That(identifier, Is.Not.EqualTo("client-supplied-id"));
+            }
+
         }
 
         [TestCase(0)]
@@ -148,10 +206,11 @@ namespace GptMemoryStore.IntegrationTests
         {
             decimal confidence = (decimal)confidenceAsDouble;
 
-            await CreateMemoryAsync("Boundary content", "boundary", confidence);
+            using HttpResponseMessage response = await CreateMemoryAsync("Boundary content", "boundary", confidence);
 
-            JsonDocument document = await GetMemoriesDocumentAsync();
+            using JsonDocument document = await GetMemoriesDocumentAsync();
 
+            await AssertResponseAsync(response, HttpStatusCode.OK);
             Assert.That(
                 document.RootElement.GetProperty("memories")[0].GetProperty("confidence").GetDecimal(),
                 Is.EqualTo(confidence));
@@ -160,44 +219,73 @@ namespace GptMemoryStore.IntegrationTests
         [Test]
         public async Task GivenEmptyTextFields_WhenCreating_ThenValuesArePersisted()
         {
-            await CreateMemoryAsync(string.Empty, string.Empty, 0m);
+            using HttpResponseMessage response = await CreateMemoryAsync(string.Empty, string.Empty, 0m);
 
-            JsonDocument document = await GetMemoriesDocumentAsync();
+            using JsonDocument document = await GetMemoriesDocumentAsync();
             JsonElement memory = document.RootElement.GetProperty("memories")[0];
 
-            Assert.That(memory.GetProperty("content").GetString(), Is.Empty);
-            Assert.That(memory.GetProperty("source").GetString(), Is.Empty);
+            await AssertResponseAsync(response, HttpStatusCode.OK);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(memory.GetProperty("content").GetString(), Is.Empty);
+                Assert.That(memory.GetProperty("source").GetString(), Is.Empty);
+                Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0m));
+            }
+
         }
 
         [Test]
         public async Task GivenSeveralMemories_WhenGettingAll_ThenCountAndAllRecordsAreReturned()
         {
-            await CreateMemoryAsync("First", "one", 0.1m);
-            await CreateMemoryAsync("Second", "two", 0.2m);
-            await CreateMemoryAsync("Third", "three", 0.3m);
+            using HttpResponseMessage firstResponse = await CreateMemoryAsync("First", "one", 0.1m);
+            using HttpResponseMessage secondResponse = await CreateMemoryAsync("Second", "two", 0.2m);
+            using HttpResponseMessage thirdResponse = await CreateMemoryAsync("Third", "three", 0.3m);
 
-            JsonDocument document = await GetMemoriesDocumentAsync();
+            using JsonDocument document = await GetMemoriesDocumentAsync();
 
-            Assert.That(document.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(3));
-            Assert.That(document.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(3));
+            await AssertResponseAsync(firstResponse, HttpStatusCode.OK);
+            await AssertResponseAsync(secondResponse, HttpStatusCode.OK);
+            await AssertResponseAsync(thirdResponse, HttpStatusCode.OK);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(document.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(3));
+                Assert.That(document.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(3));
+            }
+
+            string[] expectedContents = ["First", "Second", "Third"];
+            Assert.That(
+                document.RootElement.GetProperty("memories").EnumerateArray()
+                    .Select(memory => ReadRequiredString(memory, "content")),
+                Is.EquivalentTo(expectedContents));
         }
 
         [Test]
         public async Task GivenExistingMemory_WhenGettingByIdentifier_ThenAllFieldsAreReturned()
         {
-            await CreateMemoryAsync("Find me", "lookup", 0.8m);
-            JsonDocument collection = await GetMemoriesDocumentAsync();
-            string identifier = collection.RootElement.GetProperty("memories")[0].GetProperty("id").GetString();
+            using HttpResponseMessage createResponse = await CreateMemoryAsync("Find me", "lookup", 0.8m);
+            using JsonDocument collection = await GetMemoriesDocumentAsync();
+            JsonElement originalMemory = collection.RootElement.GetProperty("memories")[0];
+            string identifier = ReadRequiredString(originalMemory, "id");
 
-            using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Get, $"/Memories/{identifier}");
-            JsonDocument document = await ReadJsonAsync(response);
+            using HttpResponseMessage response = await SendAuthenticatedAsync(
+                HttpMethod.Get,
+                $"/Memories/{identifier}");
+            using JsonDocument document = await ReadJsonAsync(response);
             JsonElement memory = document.RootElement;
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(memory.GetProperty("id").GetString(), Is.EqualTo(identifier));
-            Assert.That(memory.GetProperty("content").GetString(), Is.EqualTo("Find me"));
-            Assert.That(memory.GetProperty("source").GetString(), Is.EqualTo("lookup"));
-            Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.8m));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(memory.GetProperty("id").GetString(), Is.EqualTo(identifier));
+                Assert.That(memory.GetProperty("content").GetString(), Is.EqualTo("Find me"));
+                Assert.That(memory.GetProperty("source").GetString(), Is.EqualTo("lookup"));
+                Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.8m));
+                Assert.That(
+                    memory.GetProperty("createdDateTime").GetString(),
+                    Is.EqualTo(ReadRequiredString(originalMemory, "createdDateTime")));
+                Assert.That(memory.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            }
+
         }
 
         [Test]
@@ -205,28 +293,31 @@ namespace GptMemoryStore.IntegrationTests
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Get, "/Memories/unknown-id");
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+            await AssertResponseAsync(response, HttpStatusCode.InternalServerError);
         }
 
         [Test]
         public async Task GivenExistingMemory_WhenUpdating_ThenAllMutableFieldsAreRevised()
         {
-            await CreateMemoryAsync("Original", "original-source", 0.2m);
-            JsonDocument initialCollection = await GetMemoriesDocumentAsync();
+            using HttpResponseMessage createResponse = await CreateMemoryAsync("Original", "original-source", 0.2m);
+            using JsonDocument initialCollection = await GetMemoriesDocumentAsync();
             JsonElement initialMemory = initialCollection.RootElement.GetProperty("memories")[0];
-            string identifier = initialMemory.GetProperty("id").GetString();
-            string createdDateTime = initialMemory.GetProperty("createdDateTime").GetString();
+            string identifier = ReadRequiredString(initialMemory, "id");
+            string createdDateTime = ReadRequiredString(initialMemory, "createdDateTime");
 
             using HttpResponseMessage response = await UpdateMemoryAsync(identifier, "Revised", "revised-source", 0.9m);
-            JsonDocument revisedDocument = await ReadJsonAsync(await SendAuthenticatedAsync(HttpMethod.Get, $"/Memories/{identifier}"));
+            using HttpResponseMessage getResponse = await SendAuthenticatedAsync(
+                HttpMethod.Get,
+                $"/Memories/{identifier}");
+            using JsonDocument revisedDocument = await ReadJsonAsync(getResponse);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(revisedDocument.RootElement.GetProperty("id").GetString(), Is.EqualTo(identifier));
-            Assert.That(revisedDocument.RootElement.GetProperty("createdDateTime").GetString(), Is.EqualTo(createdDateTime));
-            Assert.That(revisedDocument.RootElement.GetProperty("updatedDateTime").GetString(), Is.Not.Empty);
-            Assert.That(revisedDocument.RootElement.GetProperty("content").GetString(), Is.EqualTo("Revised"));
-            Assert.That(revisedDocument.RootElement.GetProperty("source").GetString(), Is.EqualTo("revised-source"));
-            Assert.That(revisedDocument.RootElement.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.9m));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            }
+
+            AssertUpdatedMemory(revisedDocument.RootElement, identifier, createdDateTime);
         }
 
         [Test]
@@ -234,21 +325,28 @@ namespace GptMemoryStore.IntegrationTests
         {
             using HttpResponseMessage response = await UpdateMemoryAsync("unknown-id", "Revised", "source", 0.5m);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+            await AssertResponseAsync(response, HttpStatusCode.InternalServerError);
         }
 
         [Test]
         public async Task GivenExistingMemory_WhenDeleting_ThenSuccessResponseIsReturnedAndMemoryIsAbsent()
         {
-            await CreateMemoryAsync("Delete me", "delete", 0.4m);
-            JsonDocument collection = await GetMemoriesDocumentAsync();
-            string identifier = collection.RootElement.GetProperty("memories")[0].GetProperty("id").GetString();
+            using HttpResponseMessage createResponse = await CreateMemoryAsync("Delete me", "delete", 0.4m);
+            using JsonDocument collection = await GetMemoriesDocumentAsync();
+            string identifier = ReadRequiredString(collection.RootElement.GetProperty("memories")[0], "id");
 
-            using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Delete, $"/Memories/{identifier}");
-            JsonDocument remaining = await GetMemoriesDocumentAsync();
+            using HttpResponseMessage response = await SendAuthenticatedAsync(
+                HttpMethod.Delete,
+                $"/Memories/{identifier}");
+            using JsonDocument remaining = await GetMemoriesDocumentAsync();
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(remaining.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(0));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(remaining.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(0));
+                Assert.That(remaining.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(0));
+            }
+
         }
 
         [Test]
@@ -256,36 +354,49 @@ namespace GptMemoryStore.IntegrationTests
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Delete, "/Memories/unknown-id");
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+            await AssertResponseAsync(response, HttpStatusCode.InternalServerError);
         }
 
         [Test]
         public async Task GivenUpdatedAndNeverUpdatedMemories_WhenGettingAll_ThenMostRecentlyUpdatedIsFirst()
         {
-            await CreateMemoryAsync("First", "one", 0.1m);
-            await CreateMemoryAsync("Second", "two", 0.2m);
-            JsonDocument collection = await GetMemoriesDocumentAsync();
-            string firstIdentifier = collection.RootElement.GetProperty("memories")[1].GetProperty("id").GetString();
+            using HttpResponseMessage firstResponse = await CreateMemoryAsync("First", "one", 0.1m);
+            using HttpResponseMessage secondResponse = await CreateMemoryAsync("Second", "two", 0.2m);
+            using JsonDocument collection = await GetMemoriesDocumentAsync();
+            JsonElement firstMemory = collection.RootElement.GetProperty("memories").EnumerateArray()
+                .Single(memory => Equals(ReadRequiredString(memory, "content"), "First"));
+            string firstIdentifier = ReadRequiredString(firstMemory, "id");
 
-            await UpdateMemoryAsync(firstIdentifier, "First revised", "one-revised", 0.3m);
+            using HttpResponseMessage updateResponse = await UpdateMemoryAsync(
+                firstIdentifier,
+                "First revised",
+                "one-revised",
+                0.3m);
 
-            JsonDocument revisedCollection = await GetMemoriesDocumentAsync();
+            using JsonDocument revisedCollection = await GetMemoriesDocumentAsync();
 
-            Assert.That(
-                revisedCollection.RootElement.GetProperty("memories")[0].GetProperty("id").GetString(),
-                Is.EqualTo(firstIdentifier));
+            await AssertResponseAsync(updateResponse, HttpStatusCode.OK);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(revisedCollection.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(2));
+                Assert.That(
+                    revisedCollection.RootElement.GetProperty("memories")[0].GetProperty("id").GetString(),
+                    Is.EqualTo(firstIdentifier));
+            }
+
         }
 
         [Test]
         public async Task GivenMalformedJson_WhenCreating_ThenBadRequestIsReturned()
         {
             using HttpRequestMessage request = CreateRequest(HttpMethod.Post, "/Memories");
-            request.Content = new StringContent("{ invalid", Encoding.UTF8, JsonMediaType);
+            StringContent requestContent = new("{ invalid", Encoding.UTF8, JsonMediaType);
+            request.Content = requestContent;
             AddAuthorisation(request);
 
-            using HttpResponseMessage response = await client.SendAsync(request);
+            using HttpResponseMessage response = await Client.SendAsync(request);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            await AssertResponseAsync(response, HttpStatusCode.BadRequest);
         }
 
         [Test]
@@ -294,9 +405,9 @@ namespace GptMemoryStore.IntegrationTests
             using HttpRequestMessage request = CreateRequest(HttpMethod.Post, "/Memories");
             AddAuthorisation(request);
 
-            using HttpResponseMessage response = await client.SendAsync(request);
+            using HttpResponseMessage response = await Client.SendAsync(request);
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnsupportedMediaType));
+            await AssertResponseAsync(response, HttpStatusCode.UnsupportedMediaType);
         }
 
         [Test]
@@ -304,7 +415,7 @@ namespace GptMemoryStore.IntegrationTests
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Patch, "/Memories");
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            await AssertResponseAsync(response, HttpStatusCode.MethodNotAllowed);
         }
 
         [Test]
@@ -312,14 +423,14 @@ namespace GptMemoryStore.IntegrationTests
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Get, "/Memories/");
 
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            await AssertResponseAsync(response, HttpStatusCode.OK);
         }
 
         private Task<HttpResponseMessage> CreateMemoryAsync(
             string content,
             string source,
             decimal confidence)
-            => CreateMemoryAsync(content, source, confidence, null);
+            => CreateMemoryAsync(content, source, confidence, string.Empty);
 
         private async Task<HttpResponseMessage> CreateMemoryAsync(
             string content,
@@ -336,10 +447,11 @@ namespace GptMemoryStore.IntegrationTests
             });
 
             using HttpRequestMessage request = CreateRequest(HttpMethod.Post, "/Memories");
-            request.Content = new StringContent(requestJson, Encoding.UTF8, JsonMediaType);
+            StringContent requestContent = new(requestJson, Encoding.UTF8, JsonMediaType);
+            request.Content = requestContent;
             AddAuthorisation(request);
 
-            return await client.SendAsync(request);
+            return await Client.SendAsync(request);
         }
 
         private async Task<HttpResponseMessage> UpdateMemoryAsync(
@@ -357,25 +469,29 @@ namespace GptMemoryStore.IntegrationTests
             });
 
             using HttpRequestMessage request = CreateRequest(HttpMethod.Put, "/Memories");
-            request.Content = new StringContent(requestJson, Encoding.UTF8, JsonMediaType);
+            StringContent requestContent = new(requestJson, Encoding.UTF8, JsonMediaType);
+            request.Content = requestContent;
             AddAuthorisation(request);
 
-            return await client.SendAsync(request);
+            return await Client.SendAsync(request);
         }
 
         private async Task<JsonDocument> GetMemoriesDocumentAsync()
         {
             using HttpResponseMessage response = await SendAuthenticatedAsync(HttpMethod.Get, "/Memories");
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
             return await ReadJsonAsync(response);
         }
 
-        private async Task<HttpResponseMessage> SendAuthenticatedAsync(HttpMethod method, string requestUri)
+        private async Task<HttpResponseMessage> SendAuthenticatedAsync(
+            HttpMethod method,
+            string requestUri)
         {
             using HttpRequestMessage request = CreateRequest(method, requestUri);
             AddAuthorisation(request);
 
-            return await client.SendAsync(request);
+            return await Client.SendAsync(request);
         }
 
         private static HttpRequestMessage CreateRequest(HttpMethod method, string requestUri)
@@ -383,6 +499,65 @@ namespace GptMemoryStore.IntegrationTests
 
         private static void AddAuthorisation(HttpRequestMessage request)
             => request.Headers.Authorization = new("Bearer", ApiKey);
+
+        private static string ReadRequiredString(JsonElement element, string propertyName)
+        {
+            string value = element.GetProperty(propertyName).GetString();
+            Assert.That(value, Is.Not.Null.And.Not.Empty, $"The {propertyName} field must contain text.");
+
+            if (value is null)
+            {
+                throw new InvalidDataException($"The JSON property '{propertyName}' must not be null.");
+            }
+
+            return value;
+        }
+
+        private static void AssertUpdatedMemory(
+            JsonElement memory,
+            string identifier,
+            string createdDateTime)
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(memory.GetProperty("id").GetString(), Is.EqualTo(identifier));
+                Assert.That(memory.GetProperty("createdDateTime").GetString(), Is.EqualTo(createdDateTime));
+                Assert.That(
+                    DateTimeOffset.TryParse(
+                        ReadRequiredString(memory, "updatedDateTime"),
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out _));
+                Assert.That(memory.GetProperty("content").GetString(), Is.EqualTo("Revised"));
+                Assert.That(memory.GetProperty("source").GetString(), Is.EqualTo("revised-source"));
+                Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.9m));
+            }
+
+        }
+
+        private static async Task AssertResponseAsync(
+            HttpResponseMessage response,
+            HttpStatusCode expectedStatusCode)
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(expectedStatusCode));
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            if (Equals(expectedStatusCode, HttpStatusCode.MethodNotAllowed))
+            {
+                Assert.That(responseContent, Is.Empty);
+
+                return;
+            }
+
+            Assert.That(responseContent, Is.Not.Empty);
+
+            if (Equals(response.Content.Headers.ContentType?.MediaType, JsonMediaType) ||
+                Equals(response.Content.Headers.ContentType?.MediaType, "application/problem+json"))
+            {
+                using JsonDocument document = JsonDocument.Parse(responseContent);
+                Assert.That(document.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Object));
+            }
+        }
 
         private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response)
         {
