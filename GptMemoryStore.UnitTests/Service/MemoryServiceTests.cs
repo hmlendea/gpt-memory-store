@@ -234,7 +234,6 @@ namespace GptMemoryStore.UnitTests.Service
                     Is.EqualTo(DateTimeOffset.Parse(dataObject.CreatedTimestamp, CultureInfo.InvariantCulture)));
                 Assert.That(result.UpdatedDateTime, Is.Null);
             }
-
         }
 
         [Test]

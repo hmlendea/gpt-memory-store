@@ -7,7 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GptMemoryStore.IntegrationTests
 {
-    public sealed class IntegrationTestApplicationFactory(string memoryStorePath, string apiKey) : WebApplicationFactory<Program>
+    public sealed class IntegrationTestApplicationFactory(
+        string memoryStorePath,
+        string apiKey) : WebApplicationFactory<Program>
     {
         public string MemoryStorePath { get; } = memoryStorePath;
 

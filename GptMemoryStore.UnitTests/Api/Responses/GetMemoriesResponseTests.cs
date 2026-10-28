@@ -68,7 +68,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
                 Assert.That(memoryResponse.CreatedDateTime, Is.EqualTo(memory.CreatedDateTime));
                 Assert.That(memoryResponse.UpdatedDateTime, Is.EqualTo(memory.UpdatedDateTime));
             }
-
         }
 
         [Test]
@@ -99,7 +98,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
                 Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-2"));
                 Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-1"));
             }
-
         }
 
         [Test]
@@ -124,7 +122,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
                 Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-2"));
                 Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-1"));
             }
-
         }
 
         [Test]
@@ -151,7 +148,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
                 Assert.That(response.Memories.First().Identifier, Is.EqualTo("updated-id"));
                 Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("never-updated-id"));
             }
-
         }
 
         [Test]
@@ -180,7 +176,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
                 Assert.That(response.Memories.First().Identifier, Is.EqualTo("id-2"));
                 Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-1"));
             }
-
         }
 
         [Test]
@@ -234,7 +229,6 @@ namespace GptMemoryStore.UnitTests.Api.Responses
                 Assert.That(response.Memories.Skip(1).First().Identifier, Is.EqualTo("id-middle"));
                 Assert.That(response.Memories.Skip(2).First().Identifier, Is.EqualTo("id-oldest"));
             }
-
         }
 
         [Test]
