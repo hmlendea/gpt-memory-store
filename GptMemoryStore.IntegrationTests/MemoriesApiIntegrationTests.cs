@@ -85,7 +85,6 @@ namespace GptMemoryStore.IntegrationTests
                 Assert.That(File.Exists(ApplicationFactory.MemoryStorePath));
                 Assert.That(File.ReadAllText(ApplicationFactory.MemoryStorePath), Is.EqualTo("[]"));
             }
-
         }
 
         [Test]
@@ -138,7 +137,6 @@ namespace GptMemoryStore.IntegrationTests
                 Assert.That(document.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(0));
                 Assert.That(document.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(0));
             }
-
         }
 
         [Test]
@@ -175,7 +173,6 @@ namespace GptMemoryStore.IntegrationTests
                         out _));
                 Assert.That(memory.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
             }
-
         }
 
         [Test]
@@ -196,7 +193,6 @@ namespace GptMemoryStore.IntegrationTests
                 Assert.That(Guid.TryParse(identifier, out _));
                 Assert.That(identifier, Is.Not.EqualTo("client-supplied-id"));
             }
-
         }
 
         [TestCase(0)]
@@ -231,7 +227,6 @@ namespace GptMemoryStore.IntegrationTests
                 Assert.That(memory.GetProperty("source").GetString(), Is.Empty);
                 Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0m));
             }
-
         }
 
         [Test]
@@ -285,7 +280,6 @@ namespace GptMemoryStore.IntegrationTests
                     Is.EqualTo(ReadRequiredString(originalMemory, "createdDateTime")));
                 Assert.That(memory.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
             }
-
         }
 
         [Test]
@@ -346,7 +340,6 @@ namespace GptMemoryStore.IntegrationTests
                 Assert.That(remaining.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(0));
                 Assert.That(remaining.RootElement.GetProperty("memories").GetArrayLength(), Is.EqualTo(0));
             }
-
         }
 
         [Test]
@@ -383,7 +376,6 @@ namespace GptMemoryStore.IntegrationTests
                     revisedCollection.RootElement.GetProperty("memories")[0].GetProperty("id").GetString(),
                     Is.EqualTo(firstIdentifier));
             }
-
         }
 
         [Test]
@@ -502,7 +494,7 @@ namespace GptMemoryStore.IntegrationTests
 
         private static string ReadRequiredString(JsonElement element, string propertyName)
         {
-            string value = element.GetProperty(propertyName).GetString();
+            string value = element.GetProperty(propertyName).GetString()!;
             Assert.That(value, Is.Not.Null.And.Not.Empty, $"The {propertyName} field must contain text.");
 
             if (value is null)
@@ -532,7 +524,6 @@ namespace GptMemoryStore.IntegrationTests
                 Assert.That(memory.GetProperty("source").GetString(), Is.EqualTo("revised-source"));
                 Assert.That(memory.GetProperty("confidence").GetDecimal(), Is.EqualTo(0.9m));
             }
-
         }
 
         private static async Task AssertResponseAsync(

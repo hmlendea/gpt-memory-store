@@ -70,7 +70,7 @@ namespace GptMemoryStore.ArchitectureTests
                 }
 
                 if (symbol.ContainingNamespace.ToDisplayString().StartsWith("NUnit.Framework", StringComparison.Ordinal) &&
-                    symbol.ContainingType.Name is "Assert" or "ClassicAssert" && symbol.Name != "That" && symbol.Name != "Multiple")
+                    symbol.ContainingType.Name is "Assert" or "ClassicAssert" && symbol.Name is not ("That" or "Multiple" or "EnterMultipleScope"))
                 {
                     yield return SourceConventionRules.Describe(call, "Use NUnit Assert.That constraints, not legacy assertion APIs.");
                 }
