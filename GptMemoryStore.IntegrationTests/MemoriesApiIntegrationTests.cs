@@ -430,7 +430,7 @@ namespace GptMemoryStore.IntegrationTests
             string content,
             string source,
             decimal confidence)
-            => CreateMemoryAsync(content, source, confidence, null);
+            => CreateMemoryAsync(content, source, confidence, string.Empty);
 
         private async Task<HttpResponseMessage> CreateMemoryAsync(
             string content,
