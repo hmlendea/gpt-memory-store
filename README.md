@@ -282,6 +282,10 @@ When doing so, please:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on reporting issues, suggesting enhancements, and submitting code changes.
 
+## 📜 Code of Conduct
+
+See the [Code of Conduct](CODE_OF_CONDUCT.md) for the standards of conduct expected in all project spaces.
+
 ## 🛡️ Security Policy
 
 Report vulnerabilities according to the [security policy](SECURITY.md). Please refrain from public disclosure until maintainers have had an opportunity to validate and remediate the issue.
