@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using GptMemoryStore.DataAccess.DataObjects;
@@ -7,12 +8,12 @@ using GptMemoryStore.Service.Models;
 
 namespace GptMemoryStore.Service.Mapping
 {
-    static class GptMemoryMappingExtensions
+    internal static class GptMemoryMappingExtensions
     {
-        internal static GptMemory ToDomainModel(this GptMemoryDataObject dataObject) => new()
+        internal static GptMemory ToServiceModel(this GptMemoryDataObject dataObject) => new()
         {
             Id = dataObject.Id,
-            CreatedDateTime = DateTimeOffset.Parse(dataObject.CreatedTimestamp),
+            CreatedDateTime = DateTimeOffset.Parse(dataObject.CreatedTimestamp, CultureInfo.InvariantCulture),
             UpdatedDateTime = ParseNullableTimestamp(dataObject.UpdatedTimestamp),
             Content = dataObject.Content,
             Source = dataObject.Source,
@@ -29,8 +30,8 @@ namespace GptMemoryStore.Service.Mapping
             Confidence = domainModel.Confidence
         };
 
-        internal static IEnumerable<GptMemory> ToDomainModels(this IEnumerable<GptMemoryDataObject> dataObjects)
-            => dataObjects.Select(dataObject => dataObject.ToDomainModel());
+        internal static IEnumerable<GptMemory> ToServiceModels(this IEnumerable<GptMemoryDataObject> dataObjects)
+            => dataObjects.Select(dataObject => dataObject.ToServiceModel());
 
         internal static IEnumerable<GptMemoryDataObject> ToDataObjects(this IEnumerable<GptMemory> domainModels)
             => domainModels.Select(domainModel => domainModel.ToDataObject());
@@ -44,7 +45,7 @@ namespace GptMemoryStore.Service.Mapping
                 return null;
             }
 
-            return DateTimeOffset.Parse(timestamp);
+            return DateTimeOffset.Parse(timestamp, CultureInfo.InvariantCulture);
         }
     }
 }

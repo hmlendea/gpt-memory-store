@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using Moq;
@@ -19,19 +20,22 @@ namespace GptMemoryStore.UnitTests.Service
     [TestFixture]
     public sealed class MemoryServiceTests
     {
-        Mock<IFileRepository<GptMemoryDataObject>> repositoryMock;
-        Mock<ILogger> loggerMock;
-        MemoryService service;
+        private Mock<IFileRepository<GptMemoryDataObject>> repositoryMock = new();
+        private Mock<ILogger> loggerMock = new();
+        private MemoryService service;
+
+        public MemoryServiceTests()
+        {
+            service = new(repositoryMock.Object, loggerMock.Object);
+        }
 
         [SetUp]
         public void SetUp()
         {
-            repositoryMock = new Mock<IFileRepository<GptMemoryDataObject>>();
-            loggerMock = new Mock<ILogger>();
-            service = new MemoryService(repositoryMock.Object, loggerMock.Object);
+            repositoryMock = new();
+            loggerMock = new();
+            service = new(repositoryMock.Object, loggerMock.Object);
         }
-
-        // ── Create ──────────────────────────────────────────────────────────────
 
         [Test]
         public void GivenValidMemory_WhenCreating_ThenRepositoryAddIsCalledWithCorrectData()
@@ -41,11 +45,13 @@ namespace GptMemoryStore.UnitTests.Service
             service.Create(memory);
 
             repositoryMock.Verify(
-                r => r.Add(It.Is<GptMemoryDataObject>(dataObject =>
-                    dataObject.Id == memory.Id &&
-                    dataObject.Content == memory.Content &&
-                    dataObject.Source == memory.Source &&
-                    dataObject.Confidence == memory.Confidence)),
+                repository => repository.Add(It.Is<GptMemoryDataObject>(dataObject =>
+                    Equals(dataObject.Id, memory.Id) &&
+                    Equals(dataObject.Content, memory.Content) &&
+                    Equals(dataObject.Source, memory.Source) &&
+                    Equals(dataObject.Confidence, memory.Confidence) &&
+                    Equals(dataObject.CreatedTimestamp, "2012-09-05T10:30:00.0000000+00:00") &&
+                    Equals(dataObject.UpdatedTimestamp, null))),
                 Times.Once);
         }
 
@@ -54,7 +60,7 @@ namespace GptMemoryStore.UnitTests.Service
         {
             service.Create(BuildTestMemory());
 
-            repositoryMock.Verify(r => r.SaveChanges(), Times.Once);
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Once);
         }
 
         [Test]
@@ -65,8 +71,8 @@ namespace GptMemoryStore.UnitTests.Service
             service.Create(memory);
 
             repositoryMock.Verify(
-                r => r.Add(It.Is<GptMemoryDataObject>(dataObject =>
-                    !string.IsNullOrEmpty(dataObject.CreatedTimestamp))),
+                repository => repository.Add(It.Is<GptMemoryDataObject>(dataObject =>
+                    Equals(dataObject.CreatedTimestamp, "2012-09-05T10:30:00.0000000+00:00"))),
                 Times.Once);
         }
 
@@ -74,19 +80,20 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenRepositoryThrowsOnAdd_WhenCreating_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.Add(It.IsAny<GptMemoryDataObject>()))
+                .Setup(repository => repository.Add(It.IsAny<GptMemoryDataObject>()))
                 .Throws<InvalidOperationException>();
 
             Assert.That(
                 () => service.Create(BuildTestMemory()),
                 Throws.TypeOf<InvalidOperationException>());
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Never);
         }
 
         [Test]
         public void GivenRepositoryThrowsOnSaveChanges_WhenCreating_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.SaveChanges())
+                .Setup(repository => repository.SaveChanges())
                 .Throws<InvalidOperationException>();
 
             Assert.That(
@@ -94,13 +101,11 @@ namespace GptMemoryStore.UnitTests.Service
                 Throws.TypeOf<InvalidOperationException>());
         }
 
-        // ── Get(id) ─────────────────────────────────────────────────────────────
-
         [Test]
         public void GivenMemoryExists_WhenGettingById_ThenIdIsMappedCorrectly()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
@@ -111,7 +116,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenMemoryExists_WhenGettingById_ThenContentIsMappedCorrectly()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
@@ -122,7 +127,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenMemoryExists_WhenGettingById_ThenSourceIsMappedCorrectly()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
@@ -133,7 +138,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenMemoryExists_WhenGettingById_ThenConfidenceIsMappedCorrectly()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
@@ -144,11 +149,13 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenMemoryExists_WhenGettingById_ThenCreatedDateTimeIsMappedCorrectly()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
-            DateTimeOffset expectedCreatedDateTime = DateTimeOffset.Parse(dataObject.CreatedTimestamp);
+            DateTimeOffset expectedCreatedDateTime = DateTimeOffset.Parse(
+                dataObject.CreatedTimestamp,
+                CultureInfo.InvariantCulture);
             Assert.That(result.CreatedDateTime, Is.EqualTo(expectedCreatedDateTime));
         }
 
@@ -156,8 +163,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenMemoryWithNullUpdatedTimestamp_WhenGettingById_ThenUpdatedDateTimeIsNull()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            dataObject.UpdatedTimestamp = null;
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
@@ -169,11 +175,13 @@ namespace GptMemoryStore.UnitTests.Service
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
             dataObject.UpdatedTimestamp = "2012-09-05T12:00:00.0000000+00:00";
-            repositoryMock.Setup(r => r.Get(dataObject.Id)).Returns(dataObject);
+            repositoryMock.Setup(repository => repository.Get(dataObject.Id)).Returns(dataObject);
 
             GptMemory result = service.Get(dataObject.Id);
 
-            DateTimeOffset expectedUpdatedDateTime = DateTimeOffset.Parse(dataObject.UpdatedTimestamp);
+            DateTimeOffset expectedUpdatedDateTime = DateTimeOffset.Parse(
+                dataObject.UpdatedTimestamp,
+                CultureInfo.InvariantCulture);
             Assert.That(result.UpdatedDateTime, Is.EqualTo(expectedUpdatedDateTime));
         }
 
@@ -181,7 +189,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenRepositoryThrowsOnGet_WhenGettingById_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.Get(It.IsAny<string>()))
+                .Setup(repository => repository.Get(It.IsAny<string>()))
                 .Throws<KeyNotFoundException>();
 
             Assert.That(
@@ -189,12 +197,10 @@ namespace GptMemoryStore.UnitTests.Service
                 Throws.TypeOf<KeyNotFoundException>());
         }
 
-        // ── Get() ───────────────────────────────────────────────────────────────
-
         [Test]
         public void GivenThreeMemoriesExist_WhenGettingAll_ThenThreeMemoriesAreReturned()
         {
-            repositoryMock.Setup(r => r.GetAll()).Returns(
+            repositoryMock.Setup(repository => repository.GetAll()).Returns(
             [
                 BuildTestDataObject("id-613", "Ilarion Pintilie content"),
                 BuildTestDataObject("id-873", "Vasile Ciupitu content"),
@@ -203,27 +209,38 @@ namespace GptMemoryStore.UnitTests.Service
 
             IEnumerable<GptMemory> result = service.Get();
 
-            Assert.That(result, Has.Exactly(3).Items);
+            string[] expectedIdentifiers = ["id-613", "id-873", "id-1"];
+            Assert.That(
+                result.Select(memory => memory.Id),
+                Is.EqualTo(expectedIdentifiers));
         }
 
         [Test]
         public void GivenMemoriesExist_WhenGettingAll_ThenEachMemoryDataIsMappedCorrectly()
         {
             GptMemoryDataObject dataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.GetAll()).Returns([dataObject]);
+            repositoryMock.Setup(repository => repository.GetAll()).Returns([dataObject]);
 
-            GptMemory result = service.Get().First();
+            GptMemory result = service.Get().Single();
 
-            Assert.That(result.Id, Is.EqualTo(dataObject.Id));
-            Assert.That(result.Content, Is.EqualTo(dataObject.Content));
-            Assert.That(result.Source, Is.EqualTo(dataObject.Source));
-            Assert.That(result.Confidence, Is.EqualTo(dataObject.Confidence));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Id, Is.EqualTo(dataObject.Id));
+                Assert.That(result.Content, Is.EqualTo(dataObject.Content));
+                Assert.That(result.Source, Is.EqualTo(dataObject.Source));
+                Assert.That(result.Confidence, Is.EqualTo(dataObject.Confidence));
+                Assert.That(
+                    result.CreatedDateTime,
+                    Is.EqualTo(DateTimeOffset.Parse(dataObject.CreatedTimestamp, CultureInfo.InvariantCulture)));
+                Assert.That(result.UpdatedDateTime, Is.Null);
+            }
+
         }
 
         [Test]
         public void GivenNoMemoriesExist_WhenGettingAll_ThenEmptyCollectionIsReturned()
         {
-            repositoryMock.Setup(r => r.GetAll()).Returns([]);
+            repositoryMock.Setup(repository => repository.GetAll()).Returns([]);
 
             IEnumerable<GptMemory> result = service.Get();
 
@@ -234,7 +251,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenRepositoryThrowsOnGetAll_WhenGettingAll_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.GetAll())
+                .Setup(repository => repository.GetAll())
                 .Throws<InvalidOperationException>();
 
             Assert.That(
@@ -242,13 +259,11 @@ namespace GptMemoryStore.UnitTests.Service
                 Throws.TypeOf<InvalidOperationException>());
         }
 
-        // ── Update ──────────────────────────────────────────────────────────────
-
         [Test]
         public void GivenValidMemory_WhenUpdating_ThenRepositoryUpdateIsCalledWithCorrectData()
         {
             GptMemoryDataObject existingDataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(existingDataObject.Id)).Returns(existingDataObject);
+            repositoryMock.Setup(repository => repository.Get(existingDataObject.Id)).Returns(existingDataObject);
 
             GptMemory updatedMemory = new()
             {
@@ -256,17 +271,19 @@ namespace GptMemoryStore.UnitTests.Service
                 Content = "Updated content by Vasile Ciupitu",
                 Source = "nucilandia.ro",
                 Confidence = 0.9m,
-                UpdatedDateTime = DateTimeOffset.UtcNow
+                UpdatedDateTime = BuildTestMemory().CreatedDateTime.AddHours(4)
             };
 
             service.Update(updatedMemory);
 
             repositoryMock.Verify(
-                r => r.Update(It.Is<GptMemoryDataObject>(dataObject =>
-                    dataObject.Id == updatedMemory.Id &&
-                    dataObject.Content == updatedMemory.Content &&
-                    dataObject.Source == updatedMemory.Source &&
-                    dataObject.Confidence == updatedMemory.Confidence)),
+                repository => repository.Update(It.Is<GptMemoryDataObject>(dataObject =>
+                    Equals(dataObject.Id, updatedMemory.Id) &&
+                    Equals(dataObject.Content, updatedMemory.Content) &&
+                    Equals(dataObject.Source, updatedMemory.Source) &&
+                    Equals(dataObject.Confidence, updatedMemory.Confidence) &&
+                    Equals(dataObject.CreatedTimestamp, existingDataObject.CreatedTimestamp) &&
+                    Equals(dataObject.UpdatedTimestamp, "2012-09-05T14:30:00.0000000+00:00"))),
                 Times.Once);
         }
 
@@ -274,7 +291,7 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenValidMemory_WhenUpdating_ThenRepositorySaveChangesIsCalled()
         {
             GptMemoryDataObject existingDataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(existingDataObject.Id)).Returns(existingDataObject);
+            repositoryMock.Setup(repository => repository.Get(existingDataObject.Id)).Returns(existingDataObject);
 
             service.Update(new()
             {
@@ -284,7 +301,7 @@ namespace GptMemoryStore.UnitTests.Service
                 Confidence = 0.9m
             });
 
-            repositoryMock.Verify(r => r.SaveChanges(), Times.Once);
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Once);
         }
 
         [Test]
@@ -292,20 +309,20 @@ namespace GptMemoryStore.UnitTests.Service
         {
             GptMemoryDataObject existingDataObject = BuildTestDataObject();
             existingDataObject.CreatedTimestamp = "2012-09-05T10:30:00.0000000+00:00";
-            repositoryMock.Setup(r => r.Get(existingDataObject.Id)).Returns(existingDataObject);
+            repositoryMock.Setup(repository => repository.Get(existingDataObject.Id)).Returns(existingDataObject);
 
             service.Update(new()
             {
                 Id = existingDataObject.Id,
-                CreatedDateTime = DateTimeOffset.UtcNow,
+                CreatedDateTime = BuildTestMemory().CreatedDateTime.AddDays(4),
                 Content = "Updated content",
                 Source = "nucilandia.ro",
                 Confidence = 0.9m
             });
 
             repositoryMock.Verify(
-                r => r.Update(It.Is<GptMemoryDataObject>(dataObject =>
-                    dataObject.CreatedTimestamp == "2012-09-05T10:30:00.0000000+00:00")),
+                repository => repository.Update(It.Is<GptMemoryDataObject>(dataObject =>
+                    Equals(dataObject.CreatedTimestamp, "2012-09-05T10:30:00.0000000+00:00"))),
                 Times.Once);
         }
 
@@ -313,9 +330,9 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenValidMemory_WhenUpdating_ThenUpdatedTimestampIsSetInDataObject()
         {
             GptMemoryDataObject existingDataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(existingDataObject.Id)).Returns(existingDataObject);
+            repositoryMock.Setup(repository => repository.Get(existingDataObject.Id)).Returns(existingDataObject);
 
-            DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
+            DateTimeOffset updatedAt = BuildTestMemory().CreatedDateTime.AddHours(4);
 
             service.Update(new()
             {
@@ -327,8 +344,8 @@ namespace GptMemoryStore.UnitTests.Service
             });
 
             repositoryMock.Verify(
-                r => r.Update(It.Is<GptMemoryDataObject>(dataObject =>
-                    dataObject.UpdatedTimestamp != null)),
+                repository => repository.Update(It.Is<GptMemoryDataObject>(dataObject =>
+                    Equals(dataObject.UpdatedTimestamp, "2012-09-05T14:30:00.0000000+00:00"))),
                 Times.Once);
         }
 
@@ -336,9 +353,9 @@ namespace GptMemoryStore.UnitTests.Service
         public void GivenRepositoryThrowsOnUpdate_WhenUpdating_ThenExceptionIsRethrown()
         {
             GptMemoryDataObject existingDataObject = BuildTestDataObject();
-            repositoryMock.Setup(r => r.Get(existingDataObject.Id)).Returns(existingDataObject);
+            repositoryMock.Setup(repository => repository.Get(existingDataObject.Id)).Returns(existingDataObject);
             repositoryMock
-                .Setup(r => r.Update(It.IsAny<GptMemoryDataObject>()))
+                .Setup(repository => repository.Update(It.IsAny<GptMemoryDataObject>()))
                 .Throws<InvalidOperationException>();
 
             Assert.That(
@@ -350,28 +367,29 @@ namespace GptMemoryStore.UnitTests.Service
                     Confidence = 0.9m
                 }),
                 Throws.TypeOf<InvalidOperationException>());
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Never);
         }
 
         [Test]
         public void GivenRepositoryThrowsOnGetDuringUpdate_WhenUpdating_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.Get(It.IsAny<string>()))
+                .Setup(repository => repository.Get(It.IsAny<string>()))
                 .Throws<KeyNotFoundException>();
 
             Assert.That(
                 () => service.Update(new() { Id = "non-existent-id" }),
                 Throws.TypeOf<KeyNotFoundException>());
+            repositoryMock.Verify(repository => repository.Update(It.IsAny<GptMemoryDataObject>()), Times.Never);
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Never);
         }
-
-        // ── Delete ──────────────────────────────────────────────────────────────
 
         [Test]
         public void GivenValidId_WhenDeleting_ThenRepositoryRemoveIsCalledWithCorrectId()
         {
             service.Delete("test-memory-id");
 
-            repositoryMock.Verify(r => r.Remove("test-memory-id"), Times.Once);
+            repositoryMock.Verify(repository => repository.Remove("test-memory-id"), Times.Once);
         }
 
         [Test]
@@ -379,26 +397,27 @@ namespace GptMemoryStore.UnitTests.Service
         {
             service.Delete("test-memory-id");
 
-            repositoryMock.Verify(r => r.SaveChanges(), Times.Once);
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Once);
         }
 
         [Test]
         public void GivenRepositoryThrowsOnRemove_WhenDeleting_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.Remove(It.IsAny<string>()))
+                .Setup(repository => repository.Remove(It.IsAny<string>()))
                 .Throws<KeyNotFoundException>();
 
             Assert.That(
                 () => service.Delete("non-existent-id"),
                 Throws.TypeOf<KeyNotFoundException>());
+            repositoryMock.Verify(repository => repository.SaveChanges(), Times.Never);
         }
 
         [Test]
         public void GivenRepositoryThrowsOnSaveChangesAfterRemove_WhenDeleting_ThenExceptionIsRethrown()
         {
             repositoryMock
-                .Setup(r => r.SaveChanges())
+                .Setup(repository => repository.SaveChanges())
                 .Throws<InvalidOperationException>();
 
             Assert.That(
@@ -406,29 +425,29 @@ namespace GptMemoryStore.UnitTests.Service
                 Throws.TypeOf<InvalidOperationException>());
         }
 
-        // ── Helpers ─────────────────────────────────────────────────────────────
-
         private static GptMemory BuildTestMemory() => new()
         {
             Id = "test-memory-id",
             Content = "Solaire of Astora likes the sun.",
             Source = "nucilandia.ro",
             Confidence = 0.95m,
-            CreatedDateTime = DateTimeOffset.Parse("2012-09-05T10:30:00.0000000+00:00")
+            CreatedDateTime = DateTimeOffset.Parse(
+                "2012-09-05T10:30:00.0000000+00:00",
+                CultureInfo.InvariantCulture)
         };
 
         private static GptMemoryDataObject BuildTestDataObject()
             => BuildTestDataObject("test-memory-id", "Solaire of Astora likes the sun.");
 
-        private static GptMemoryDataObject BuildTestDataObject(string id, string content) => new()
+        private static GptMemoryDataObject BuildTestDataObject(
+            string id,
+            string content) => new()
         {
             Id = id,
             CreatedTimestamp = "2012-09-05T10:30:00.0000000+00:00",
-            UpdatedTimestamp = null,
             Content = content,
             Source = "nucilandia.ro",
             Confidence = 0.95m
         };
     }
 }
-

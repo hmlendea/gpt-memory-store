@@ -16,7 +16,7 @@ using GptMemoryStore.Configuration;
 
 namespace GptMemoryStore
 {
-    public class Startup(IConfiguration configuration)
+    public sealed class Startup(IConfiguration configuration)
     {
         public IConfiguration Configuration => configuration;
 
