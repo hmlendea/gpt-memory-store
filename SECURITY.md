@@ -30,8 +30,8 @@ To report a vulnerability:
 ## 📌 Scope
 
 The subsequent report categories are in scope for this repository:
-- Authentication or authorisation defects affecting the memory API
-- Vulnerabilities in HTTP request handling, JSON persistence, dependencies, or configuration that could expose or modify stored memories
+- Authentication or authorisation defects affecting the REST memory API or the OAuth-protected MCP endpoint
+- Vulnerabilities in HTTP request handling, MCP protocol handling, JSON persistence, dependencies, or configuration that could expose or modify stored memories
 
 The subsequent categories are out of scope unless explicitly stated to the contrary:
 - Vulnerabilities in unsupported preceding releases or unofficial distributions
