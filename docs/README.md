@@ -8,6 +8,7 @@ This directory contains comprehensive technical documentation for GPT Memory Sto
 |----------|---------|----------|
 | [API Reference](api-reference.md) | Complete REST API specification with request/response formats, authentication, error codes | API consumers, frontend developers, integrators |
 | [Configuration Reference](configuration.md) | All settings, environment variables, binding behavior, secret management | DevOps, platform engineers, operators |
+| [MCP Interface Reference](mcp.md) | Model Context Protocol transport, tools, OAuth protection, ChatGPT setup, troubleshooting | MCP integrators, ChatGPT app developers, operators |
 | [Deployment Guide](deployment.md) | Deployment options (bare metal, Docker, Kubernetes, systemd), TLS, storage, scaling | DevOps, platform engineers, operators |
 | [Development Guide](development.md) | Setup, workflows, code conventions, architecture boundaries, debugging | Contributors, maintainers |
 | [Data Model Reference](data-model.md) | Domain models, persistence models, mapping, JSON formats, ordering rules, concurrency | Developers, architects, data engineers |

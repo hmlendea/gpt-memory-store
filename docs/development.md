@@ -48,6 +48,7 @@ gpt-memory-store/
 │   ├── DataAccess/
 │   │   └── DataObjects/               # Persistence entities
 │   ├── Logging/                       # Structured logging keys/operations
+│   ├── Mcp/                           # MCP tools and OAuth resource protection
 │   ├── Service/
 │   │   ├── Mapping/                   # Domain ↔ DataObject mapping
 │   │   └── Models/                    # Domain models
@@ -60,6 +61,8 @@ gpt-memory-store/
 │   └── Service/                       # MemoryService tests
 ├── GptMemoryStore.IntegrationTests/   # Integration tests (NUnit + WebApplicationFactory)
 │   ├── IntegrationTestApplicationFactory.cs
+│   ├── McpAuthenticationTests.cs
+│   ├── McpProtocolIntegrationTests.cs
 │   ├── MemoriesApiIntegrationTests.cs
 │   └── TestServerRemoteIpStartupFilter.cs
 ├── .github/workflows/dotnet.yml       # CI pipeline
@@ -135,6 +138,25 @@ dotnet test GptMemoryStore.UnitTests/GptMemoryStore.UnitTests.csproj --filter "F
 # Run integration tests (uses isolated temp directories)
 dotnet test GptMemoryStore.IntegrationTests/GptMemoryStore.IntegrationTests.csproj --verbosity normal
 ```
+
+### MCP Tests
+
+```bash
+# Run OAuth discovery, challenge, scope and protocol-client tests
+dotnet test GptMemoryStore.IntegrationTests/GptMemoryStore.IntegrationTests.csproj --filter "FullyQualifiedName~Mcp"
+```
+
+MCP is disabled by default. For a local enabled instance, configure an HTTPS OAuth issuer and resource before starting the application:
+
+```bash
+export McpSettings__IsEnabled="true"
+export McpSettings__Authority="https://issuer.example"
+export McpSettings__Resource="https://memory.example/mcp"
+export McpSettings__RequiredScope="memories"
+dotnet run --project GptMemoryStore
+```
+
+Read the [MCP Interface Reference](mcp.md) for the OAuth contract, discovery URL, tool schemas, and troubleshooting.
 
 ### All Tests
 
