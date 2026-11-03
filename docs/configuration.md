@@ -14,6 +14,25 @@ Settings are loaded through ASP.NET Core configuration providers in standard pre
 
 ## Settings Classes
 
+### McpSettings
+
+**Configuration Section:** `mcpSettings`
+
+MCP is disabled by default. When enabled, `/mcp` requires signed bearer access tokens from an external OAuth authorization server. REST authentication remains unchanged.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| IsEnabled | `false` | Enables the protected MCP endpoint |
+| Authority | Empty | HTTPS issuer URL with OpenID Connect discovery and signing keys |
+| Resource | Empty | Public HTTPS MCP resource URL, also the required token audience |
+| RequiredScope | `memories` | Required space-delimited `scope` or `scp` claim value |
+
+Environment variables are `McpSettings__IsEnabled`, `McpSettings__Authority`, `McpSettings__Resource`, and `McpSettings__RequiredScope`. HTTPS authority/resource URLs and a non-blank scope are required when enabled. Invalid configuration prevents startup.
+
+Tokens must have a valid issuer, audience, signature and expiration. Missing or invalid tokens receive HTTP 401 with protected-resource discovery; authenticated tokens without the required scope receive HTTP 403. Discovery is public at `/.well-known/oauth-protected-resource/mcp`.
+
+This application is a resource server, not an authorization server. Configure the external provider and ChatGPT client separately. All authorized clients share the same memory store; there is no per-user isolation. Provider onboarding and deployed ChatGPT verification remain pending.
+
 ### SecuritySettings
 
 **Configuration Section:** `securitySettings`
