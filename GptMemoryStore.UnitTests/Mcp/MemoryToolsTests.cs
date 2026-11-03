@@ -154,6 +154,88 @@ namespace GptMemoryStore.UnitTests.Mcp
         }
 
         [Test]
+        public void GivenValidMemory_WhenAdding_ThenTheCreatedMemoryIsForwardedAndReturned()
+        {
+            serviceMock.Setup(service => service.Create(It.IsAny<GptMemory>()));
+
+            MemoryToolResult result = tools.Add("Content", "Source", 0.613m, serviceMock.Object);
+
+            Assert.That(result.Content, Is.EqualTo("Content"));
+            Assert.That(result.Source, Is.EqualTo("Source"));
+            Assert.That(result.Confidence, Is.EqualTo(0.613m));
+            serviceMock.Verify(service => service.Create(It.Is<GptMemory>(memory =>
+                memory.Content == "Content" && memory.Source == "Source" && memory.Confidence == 0.613m)), Times.Once);
+            serviceMock.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public void GivenValidMemory_WhenUpdating_ThenValuesAreForwardedAndTheUpdatedRecordIsReturned()
+        {
+            GptMemory updated = BuildMemory("id-613");
+            updated.Content = "Updated";
+            updated.Source = "Updated source";
+            updated.Confidence = 0.9m;
+            serviceMock.Setup(service => service.Update(It.IsAny<GptMemory>()));
+            serviceMock.Setup(service => service.Get("id-613")).Returns(updated);
+
+            MemoryToolResult result = tools.Update("id-613", "Updated", "Updated source", 0.9m, serviceMock.Object);
+
+            Assert.That(result.Content, Is.EqualTo("Updated"));
+            Assert.That(result.Source, Is.EqualTo("Updated source"));
+            Assert.That(result.Confidence, Is.EqualTo(0.9m));
+            serviceMock.Verify(service => service.Update(It.Is<GptMemory>(memory =>
+                memory.Id == "id-613" && memory.Content == "Updated" && memory.Source == "Updated source" && memory.Confidence == 0.9m)), Times.Once);
+            serviceMock.Verify(service => service.Get("id-613"), Times.Once);
+            serviceMock.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public void GivenAnExistingMemory_WhenDeleting_ThenAConfirmationIsReturned()
+        {
+            serviceMock.Setup(service => service.Delete("id-613"));
+
+            MemoryDeleteToolResult result = tools.Delete("id-613", serviceMock.Object);
+
+            Assert.That(result.Id, Is.EqualTo("id-613"));
+            Assert.That(result.Deleted, Is.True);
+            serviceMock.Verify(service => service.Delete("id-613"), Times.Once);
+            serviceMock.VerifyNoOtherCalls();
+        }
+
+        [TestCase(-0.01)]
+        [TestCase(1.01)]
+        public void GivenInvalidConfidence_WhenWriting_ThenValidationPreventsServiceCalls(decimal confidence)
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(() => tools.Add("Content", "Source", confidence, serviceMock.Object), Throws.InstanceOf<ArgumentOutOfRangeException>());
+                Assert.That(() => tools.Update("id-613", "Content", "Source", confidence, serviceMock.Object), Throws.InstanceOf<ArgumentOutOfRangeException>());
+            });
+            serviceMock.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public void GivenAnUnknownMemory_WhenDeleting_ThenAControlledErrorIsReturned()
+        {
+            serviceMock.Setup(service => service.Delete("missing")).Throws<KeyNotFoundException>();
+
+            Assert.That(() => tools.Delete("missing", serviceMock.Object), Throws.InstanceOf<McpException>());
+            serviceMock.Verify(service => service.Delete("missing"), Times.Once);
+            serviceMock.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public void GivenABlankIdentifier_WhenUpdatingOrDeleting_ThenValidationPreventsServiceCalls()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(() => tools.Update(" ", "Content", "Source", 0.5m, serviceMock.Object), Throws.InstanceOf<ArgumentException>());
+                Assert.That(() => tools.Delete(" ", serviceMock.Object), Throws.InstanceOf<ArgumentException>());
+            });
+            serviceMock.VerifyNoOtherCalls();
+        }
+
+        [Test]
         public void GivenAMemory_WhenSerialisingTheToolResult_ThenTheIndependentCamelCaseContractIsPreserved()
         {
             GptMemory memory = BuildMemory("id-613");
