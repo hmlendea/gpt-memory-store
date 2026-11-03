@@ -29,19 +29,28 @@ namespace GptMemoryStore.UnitTests.Mcp
             "updated-newer-creation", "updated-older-creation", "older-update", "newer-creation", "older-creation"
         ];
         private Mock<IMemoryService> serviceMock = new(MockBehavior.Strict);
+        private MemoryTools tools = new();
 
         [SetUp]
-        public void SetUp() => serviceMock = new(MockBehavior.Strict);
+        public void SetUp()
+        {
+            serviceMock = new(MockBehavior.Strict);
+            tools = new MemoryTools();
+        }
 
         [Test]
         public void GivenAnEmptyStore_WhenGettingAll_ThenAnEmptyCollectionAndZeroCountAreReturned()
         {
             serviceMock.Setup(service => service.Get()).Returns([]);
 
-            MemoryCollectionToolResult result = MemoryTools.GetAll(serviceMock.Object);
+            MemoryCollectionToolResult result = tools.GetAll(serviceMock.Object);
 
-            Assert.That(result.Memories, Is.Empty);
-            Assert.That(result.Count, Is.Zero);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Memories, Is.Empty);
+                Assert.That(result.Count, Is.Zero);
+            }
+
             serviceMock.Verify(service => service.Get(), Times.Once);
             serviceMock.VerifyNoOtherCalls();
         }
@@ -65,10 +74,14 @@ namespace GptMemoryStore.UnitTests.Mcp
                 olderCreation, updatedOlderCreation, newerCreation, updatedNewerCreation, olderUpdate
             ]);
 
-            MemoryCollectionToolResult result = MemoryTools.GetAll(serviceMock.Object);
+            MemoryCollectionToolResult result = tools.GetAll(serviceMock.Object);
 
-            Assert.That(result.Memories.Select(memory => memory.Id), Is.EqualTo(expectedOrder));
-            Assert.That(result.Count, Is.EqualTo(expectedOrder.Length));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Memories.Select(memory => memory.Id), Is.EqualTo(expectedOrder));
+                Assert.That(result.Count, Is.EqualTo(expectedOrder.Length));
+            }
+
             serviceMock.Verify(service => service.Get(), Times.Once);
             serviceMock.VerifyNoOtherCalls();
         }
@@ -86,14 +99,18 @@ namespace GptMemoryStore.UnitTests.Mcp
 
             serviceMock.Setup(service => service.Get(memory.Id)).Returns(memory);
 
-            MemoryToolResult result = MemoryTools.Get(memory.Id, serviceMock.Object);
+            MemoryToolResult result = tools.Get(memory.Id, serviceMock.Object);
 
-            Assert.That(result.Id, Is.EqualTo(memory.Id));
-            Assert.That(result.CreatedDateTime, Is.EqualTo(memory.CreatedDateTime));
-            Assert.That(result.UpdatedDateTime, Is.EqualTo(memory.UpdatedDateTime));
-            Assert.That(result.Content, Is.EqualTo(memory.Content));
-            Assert.That(result.Source, Is.EqualTo(memory.Source));
-            Assert.That(result.Confidence, Is.EqualTo(memory.Confidence));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Id, Is.EqualTo(memory.Id));
+                Assert.That(result.CreatedDateTime, Is.EqualTo(memory.CreatedDateTime));
+                Assert.That(result.UpdatedDateTime, Is.EqualTo(memory.UpdatedDateTime));
+                Assert.That(result.Content, Is.EqualTo(memory.Content));
+                Assert.That(result.Source, Is.EqualTo(memory.Source));
+                Assert.That(result.Confidence, Is.EqualTo(memory.Confidence));
+            }
+
             serviceMock.Verify(service => service.Get(memory.Id), Times.Once);
             serviceMock.VerifyNoOtherCalls();
         }
@@ -105,7 +122,7 @@ namespace GptMemoryStore.UnitTests.Mcp
         public void GivenABlankIdentifier_WhenGetting_ThenValidationPreventsServiceCalls(string? id)
         {
             Assert.That(
-                () => MemoryTools.Get(id!, serviceMock.Object),
+                () => tools.Get(id!, serviceMock.Object),
                 Throws.InstanceOf<ArgumentException>());
             serviceMock.VerifyNoOtherCalls();
         }
@@ -117,7 +134,7 @@ namespace GptMemoryStore.UnitTests.Mcp
             serviceMock.Setup(service => service.Get("id-613")).Throws(failure);
 
             Assert.That(
-                () => MemoryTools.Get("id-613", serviceMock.Object),
+                () => tools.Get("id-613", serviceMock.Object),
                 Throws.Exception.SameAs(failure).And.Not.InstanceOf<McpException>());
             serviceMock.Verify(service => service.Get("id-613"), Times.Once);
             serviceMock.VerifyNoOtherCalls();
@@ -130,7 +147,7 @@ namespace GptMemoryStore.UnitTests.Mcp
             serviceMock.Setup(service => service.Get()).Throws(failure);
 
             Assert.That(
-                () => MemoryTools.GetAll(serviceMock.Object),
+                () => tools.GetAll(serviceMock.Object),
                 Throws.Exception.SameAs(failure).And.Not.InstanceOf<McpException>());
             serviceMock.Verify(service => service.Get(), Times.Once);
             serviceMock.VerifyNoOtherCalls();
@@ -142,14 +159,18 @@ namespace GptMemoryStore.UnitTests.Mcp
             GptMemory memory = BuildMemory("id-613");
             serviceMock.Setup(service => service.Get(memory.Id)).Returns(memory);
 
-            MemoryToolResult result = MemoryTools.Get(memory.Id, serviceMock.Object);
+            MemoryToolResult result = tools.Get(memory.Id, serviceMock.Object);
             JsonElement document = JsonSerializer.SerializeToElement(result, serializerOptions);
 
-            Assert.That(
-                document.EnumerateObject().Select(property => property.Name),
-                Is.EqualTo(expectedMemoryProperties));
-            Assert.That(document.GetProperty("id").GetString(), Is.EqualTo(memory.Id));
-            Assert.That(document.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    document.EnumerateObject().Select(property => property.Name),
+                    Is.EqualTo(expectedMemoryProperties));
+                Assert.That(document.GetProperty("id").GetString(), Is.EqualTo(memory.Id));
+                Assert.That(document.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            }
+
         }
 
         private static GptMemory BuildMemory(string id) => new()

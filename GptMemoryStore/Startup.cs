@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+using ModelContextProtocol.AspNetCore;
+
 using NuciAPI.Middleware.ExceptionHandling;
 using NuciAPI.Middleware.Logging;
 using NuciAPI.Middleware.Security;
@@ -49,7 +51,11 @@ namespace GptMemoryStore
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
-            app.UseEndpoints(endpoints => endpoints.MapControllers());
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+                endpoints.MapMcp("/mcp");
+            });
         }
 
         private static void CreateStoreIfMissing(string storePath)
