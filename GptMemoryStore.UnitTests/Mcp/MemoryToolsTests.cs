@@ -170,7 +170,6 @@ namespace GptMemoryStore.UnitTests.Mcp
                 Assert.That(document.GetProperty("id").GetString(), Is.EqualTo(memory.Id));
                 Assert.That(document.GetProperty("updatedDateTime").ValueKind, Is.EqualTo(JsonValueKind.Null));
             }
-
         }
 
         private static GptMemory BuildMemory(string id) => new()
