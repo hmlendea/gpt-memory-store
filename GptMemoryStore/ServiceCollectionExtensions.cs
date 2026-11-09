@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using ModelContextProtocol.AspNetCore;
+
 using NuciDAL.DependencyInjection;
 
 using NuciLog;
@@ -9,6 +11,7 @@ using NuciLog.Core;
 
 using GptMemoryStore.Configuration;
 using GptMemoryStore.DataAccess.DataObjects;
+using GptMemoryStore.Mcp;
 using GptMemoryStore.Service;
 
 namespace GptMemoryStore
@@ -38,9 +41,18 @@ namespace GptMemoryStore
             return services;
         }
 
-        public static IServiceCollection AddCustomServices(this IServiceCollection services) => services
-            .AddSingleton<IMemoryService, MemoryService>()
-            .AddJsonRepository<GptMemoryDataObject>(() => memoryStorePath)
-            .AddSingleton<ILogger, NuciLogger>();
+        public static IServiceCollection AddCustomServices(this IServiceCollection services)
+        {
+            services
+                .AddSingleton<IMemoryService, MemoryService>()
+                .AddJsonRepository<GptMemoryDataObject>(() => memoryStorePath)
+                .AddSingleton<ILogger, NuciLogger>();
+
+            services.AddMcpServer()
+                .WithHttpTransport()
+                .WithTools<MemoryTools>();
+
+            return services;
+        }
     }
 }

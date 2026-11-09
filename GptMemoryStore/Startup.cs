@@ -8,11 +8,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+using ModelContextProtocol.AspNetCore;
+
 using NuciAPI.Middleware.ExceptionHandling;
 using NuciAPI.Middleware.Logging;
 using NuciAPI.Middleware.Security;
 
 using GptMemoryStore.Configuration;
+using GptMemoryStore.Mcp;
+using McpAccess = GptMemoryStore.Mcp.McpAuthenticationExtensions;
 
 namespace GptMemoryStore
 {
@@ -28,7 +32,8 @@ namespace GptMemoryStore
             services
                 .AddNuciApiReplayProtection()
                 .AddConfigurations(Configuration)
-                .AddCustomServices();
+                .AddCustomServices()
+                .AddMcpAuthentication(Configuration);
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -48,8 +53,18 @@ namespace GptMemoryStore
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseAuthentication();
             app.UseAuthorization();
-            app.UseEndpoints(endpoints => endpoints.MapControllers());
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+                McpSettings settings = app.ApplicationServices.GetRequiredService<McpSettings>();
+
+                if (settings.IsEnabled)
+                {
+                    endpoints.MapMcp("/mcp").RequireAuthorization(McpAccess.PolicyName);
+                }
+            });
         }
 
         private static void CreateStoreIfMissing(string storePath)

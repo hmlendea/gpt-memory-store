@@ -52,6 +52,7 @@ GPT Memory Store is an ASP.NET Core REST API that persists shared memories for G
 - Initialise an absent store and its parent directory during application startup.
 - Retrieve memories ordered by their latest revision or creation time.
 - Protect every memory endpoint with a shared API key.
+- Expose an optional OAuth-protected MCP endpoint for ChatGPT and other MCP clients.
 - Record structured lifecycle events for memory operations.
 
 ## 🎯 Use Cases
@@ -122,7 +123,11 @@ The subsequent settings are recognised:
 
 | Section | Key | Type | Default | Required | Description |
 |---------|-----|------|---------|----------|-------------|
-| `securitySettings` | `apiKey` | `string` | No usable default | Yes | Shared secret presented by clients through the `Authorization` header |
+| `mcpSettings` | `isEnabled` | `boolean` | `false` | No | Enables the OAuth-protected `/mcp` endpoint |
+| `mcpSettings` | `authority` | `string` | Empty | When MCP is enabled | HTTPS OAuth issuer used to validate MCP tokens |
+| `mcpSettings` | `resource` | `string` | Empty | When MCP is enabled | HTTPS MCP resource URL and token audience |
+| `mcpSettings` | `requiredScope` | `string` | `memories` | When MCP is enabled | Required token scope for MCP access |
+| `securitySettings` | `apiKey` | `string` | No usable default | Yes | Shared secret presented by REST clients through the `Authorization` header |
 | `dataStoreSettings` | `memoryStorePath` | `string` | `Data/memories.json` | Yes | JSON memory-store path, relative to the application working directory when not absolute |
 | `nuciLoggerSettings` | `logFilePath` | `string` | `logfile.log` | When file output is active | Structured log destination, relative to the application working directory when not absolute |
 | `nuciLoggerSettings` | `isFileOutputEnabled` | `boolean` | `true` | Yes | Activates or deactivates file log output |
@@ -135,7 +140,7 @@ Configuration is bound to singleton settings during startup. Restart the applica
 
 ### Secret Management
 
-The committed configuration contains a non-secret template value. Provide the genuine API key through a trusted secret provider and never commit it to source control. ASP.NET Core environment configuration maps `SecuritySettings__ApiKey` to `securitySettings.apiKey`.
+The committed configuration contains non-secret template values. Provide the genuine REST API key and OAuth provider settings through trusted configuration. ASP.NET Core environment configuration maps `SecuritySettings__ApiKey` to `securitySettings.apiKey`, and maps MCP values through `McpSettings__IsEnabled`, `McpSettings__Authority`, `McpSettings__Resource`, and `McpSettings__RequiredScope`.
 
 ## 🧩 Compatibility
 
@@ -150,7 +155,9 @@ The committed configuration contains a non-secret template value. Provide the ge
 
 Every `/Memories` endpoint compares the `Authorization` header with `securitySettings.apiKey`. Clients may provide the raw API key or prefix it with `Bearer`; NuciAPI removes that prefix case-insensitively before comparison.
 
-The configured API key grants access to every CRUD operation. The service defines no additional roles or scopes.
+The configured API key grants access to every REST CRUD operation. The REST service defines no additional roles or scopes.
+
+When enabled, `/mcp` uses OAuth 2.1 bearer tokens from the configured external authority. Tokens must have a valid signature, issuer, audience, expiry and `memories` scope (or the configured required scope). Missing or invalid tokens receive `401`; authenticated tokens without the scope receive `403`. MCP clients cannot use the REST API key. See [MCP Interface Reference](docs/mcp.md).
 
 ## 🛡️ Privacy and Data
 
@@ -160,9 +167,9 @@ See [PRIVACY.md](PRIVACY.md) for a complete description of data handling, storag
 |------|---------|---------|-----------|----------|
 | Memory identifiers, timestamps, content, source, and confidence | Persistent memory operations | Configured JSON memory store | Until deleted through the API or from storage | No |
 | Operation status and context | Diagnostics and operational records | Configured log file when file output is active | No retention policy is configured by this project | File output is optional |
+| OAuth token claims used for MCP authentication | Authorise MCP requests; tokens are validated by the application and not persisted by it | Process memory only | Request lifetime | Required only when MCP is enabled |
 
-Structured log context can include memory identifiers, content, source, confidence, and collection counts. Do not store sensitive personal data unless the deployment protects both the memory store and logs appropriately.
-
+Structured log context can include memory identifiers, content, source, confidence, and collection counts. Do not store sensitive personal data unless the deployment protects both the memory store and logs appropriately.- The configured OAuth authority receives authentication requests according to its own policy. GPT Memory Store validates tokens as a resource server and does not issue tokens or persist token claims.
 ### Data Locations
 
 | Platform or Scope | Location | Contents |
@@ -193,6 +200,8 @@ dotnet build --no-restore
 ```
 
 ### Run
+
+MCP remains disabled unless explicitly enabled with an HTTPS OAuth authority and resource; see [MCP Interface Reference](docs/mcp.md).
 
 Set `SecuritySettings__ApiKey` in the process environment, then execute:
 
@@ -247,7 +256,8 @@ The solution separates the ASP.NET Core service from its NUnit test project. Wit
 | Directory | Purpose |
 |-----------|---------|
 | `GptMemoryStore/Api` | Controllers and HTTP request/response contracts |
-| `GptMemoryStore/Configuration` | Strongly typed persistence and security settings |
+| `GptMemoryStore/Configuration` | Strongly typed MCP, persistence and security settings |
+| `GptMemoryStore/Mcp` | MCP tools, transport registration and OAuth resource protection |
 | `GptMemoryStore/DataAccess` | File-persistence data objects |
 | `GptMemoryStore/Service` | Memory operations, domain models, and mappings |
 | `GptMemoryStore/Logging` | Structured operation and context identifiers |
@@ -256,7 +266,7 @@ The solution separates the ASP.NET Core service from its NUnit test project. Wit
 
 ## 🏛️ Architecture
 
-[ARCHITECTURE.md](ARCHITECTURE.md) documents the current system context, component boundaries, runtime and CRUD flows, data model, operational constraints, compatibility contracts, and verification coverage.
+[ARCHITECTURE.md](ARCHITECTURE.md) documents the current system context, REST and MCP inbound boundaries, component relationships, runtime and CRUD flows, OAuth boundary, data model, operational constraints, compatibility contracts, and verification coverage.
 
 ## 🚢 Deployment
 

@@ -13,6 +13,7 @@ This document records the verified current architecture of GPT Memory Store: a s
 - [Architectural Areas](#architectural-areas)
   - [HTTP API](#http-api)
   - [Application Service](#application-service)
+  - [MCP Interface and Authentication](#mcp-interface-and-authentication)
   - [Persistence and Configuration](#persistence-and-configuration)
 - [Data Architecture](#data-architecture)
 - [Interfaces and Integrations](#interfaces-and-integrations)
@@ -39,32 +40,38 @@ This document records the verified current architecture of GPT Memory Store: a s
 
 ## 🎯 Purpose
 
-GPT Memory Store provides authenticated CRUD operations for a shared collection of memory records. This document identifies the owning layers, persistence boundary, and contracts that contributors must preserve when changing the API, service logic, or operational configuration.
+GPT Memory Store provides authenticated REST and MCP CRUD operations for a shared collection of memory records. This document identifies the inbound interfaces, OAuth and API-key trust boundaries, owning layers, persistence boundary, and contracts that contributors must preserve when changing the API, service logic, or operational configuration.
 
 ## 🌐 System Context
 
-API clients, including GPT Actions, issue HTTP requests to the service. The service authorises each controller action using a configured API key, records operation events, and uses the configured local filesystem for JSON persistence and optional file logging. The host and filesystem are separate trust boundaries: deployment personnel supply the secret and control access to persisted records and logs.
+REST clients, including GPT Actions, issue HTTP requests to the service with the configured API key. When enabled, ChatGPT and other MCP clients issue Streamable HTTP requests to `/mcp` with OAuth bearer tokens from an external authority. The service validates the MCP token, authorises the required scope, records operation events, and uses the configured local filesystem for JSON persistence and optional file logging. The host, OAuth authority, and filesystem are separate trust boundaries: deployment personnel supply configuration and control access to persisted records and logs.
 
 ```mermaid
 flowchart LR
-    Client[API client or GPT Action] -->|HTTPS memory requests and API key| Service[GPT Memory Store]
+    RestClient[REST client or GPT Action] -->|HTTPS /Memories and API key| Service[GPT Memory Store]
+    McpClient[ChatGPT or MCP client] -->|HTTPS /mcp and OAuth bearer token| Service
+    Service -->|OAuth discovery and token keys| Authority[External OAuth authority]
     Service -->|CRUD records| Store[(Configured JSON memory store)]
     Service -->|Structured operation events| Log[(Optional log file)]
     Operator[Deployment operator] -->|Configuration and API key| Service
 ```
 
 The principal external boundaries are:
-- **API clients:** Invoke the `/Memories` HTTP contract and supply the shared API key; clients own request initiation and result handling.
+- **REST clients:** Invoke the `/Memories` HTTP contract and supply the shared API key; clients own request initiation and result handling.
+- **MCP clients:** Invoke `/mcp` only when enabled and supply an OAuth bearer token with the required scope; the external authority owns token issuance.
+- **OAuth authority:** Supplies OpenID Connect discovery and signing keys; the application validates tokens but does not issue them.
 - **Local filesystem:** Stores the JSON collection and optional logs at configured paths; the deployment environment owns durability and access permissions.
 - **Configuration and secret source:** ASP.NET Core configuration supplies store, logger, and API-key settings; deployment personnel own the genuine secret value.
 
 ## 🏗️ Architectural Style
 
-The application is a layered ASP.NET Core HTTP service. Controllers translate HTTP contracts to the `IMemoryService` application boundary, `MemoryService` maps domain records and orchestrates repository operations, and NuciDAL's JSON repository owns file persistence. Composition occurs in the host startup path, which registers each application collaborator as a singleton.
+The application is a layered ASP.NET Core HTTP service with REST and MCP inbound adapters. Controllers and MCP tools translate their respective contracts to the `IMemoryService` application boundary, `MemoryService` maps domain records and orchestrates repository operations, and NuciDAL's JSON repository owns file persistence. Composition occurs in the host startup path, which registers each application collaborator as a singleton and conditionally maps the OAuth-protected MCP endpoint.
 
 ```mermaid
 flowchart TB
-    Api[Api Controllers and DTOs] --> Service[IMemoryService / MemoryService]
+    Api[REST Controllers and DTOs] --> Service[IMemoryService / MemoryService]
+    Mcp[MCP Tools and Results] --> Auth[OAuth resource protection]
+    Auth --> Service
     Service --> Mapping[Memory Mapping]
     Service --> Repository[IFileRepository of GptMemoryDataObject]
     Repository --> Json[JsonRepository and JSON file]
@@ -76,7 +83,8 @@ flowchart TB
 ```
 
 The principal architecture boundaries are:
-- **HTTP API:** Depends on API request and response contracts, settings, and the service interface; it does not operate directly on the JSON repository.
+- **REST API:** Depends on API request and response contracts, settings, and the service interface; it does not operate directly on the JSON repository.
+- **MCP boundary:** Depends on MCP result models, `IMemoryService`, and OAuth resource-server configuration; it does not operate directly on the JSON repository.
 - **Application service:** Depends on the repository and logger abstractions; it owns memory mapping and CRUD orchestration.
 - **Persistence:** Receives `GptMemoryDataObject` instances through `IFileRepository`; JSON file representation remains behind the repository interface.
 - **Composition:** Binds configuration, configures middleware, creates an absent store, and selects concrete singleton implementations.
@@ -95,8 +103,9 @@ sequenceDiagram
     Startup->>Startup: Bind settings and register singletons
     Host->>Startup: Configure
     Startup->>Startup: Create JSON store when absent
-    Host->>Controller: Route authorised HTTP request
-    Controller->>Service: Invoke CRUD operation
+    Host->>Boundary: Route authenticated REST or MCP request
+    Boundary->>Controller: Invoke REST action when applicable
+    Boundary->>Service: Invoke CRUD operation
     Service->>Repository: Read or mutate data object
     Service->>Repository: SaveChanges for mutations
     Service-->>Controller: Return result or propagate exception
@@ -117,6 +126,9 @@ The principal runtime sequence is:
 | `MemoryService` | Log, map, and execute create, retrieve, revise, and delete operations. | `IFileRepository<GptMemoryDataObject>`, `ILogger` | Singleton |
 | `JsonRepository<GptMemoryDataObject>` | Persist memory data objects at the configured JSON path. | NuciDAL, `DataStoreSettings` path | Singleton |
 | `NuciLogger` | Emit structured lifecycle events for memory operations. | `NuciLoggerSettings` | Singleton |
+| `MemoryTools` | Expose structured MCP read/write operations through `IMemoryService`. | MCP SDK, `IMemoryService` | SDK-created instances |
+| `McpAuthenticationExtensions` | Conditionally configure JWT bearer validation, required scope and protected-resource metadata. | ASP.NET Core authentication, external OAuth authority | Composition-owned |
+| `McpSettings` | Bind MCP enablement, authority, resource and required scope. | ASP.NET Core configuration | Singleton |
 
 ## 🗂️ Architectural Areas
 
@@ -148,6 +160,21 @@ Responsibilities:
 Boundary rules:
 - `MemoryService` uses repository and logger interfaces, not a concrete JSON store.
 - Mapping between `GptMemory` and `GptMemoryDataObject` is internal to the service area.
+
+### MCP Interface and Authentication
+
+Paths:
+- `GptMemoryStore/Mcp`
+- `GptMemoryStore/Configuration/McpSettings.cs`
+
+Responsibilities:
+- Expose five structured tools over stateless Streamable HTTP at `/mcp`.
+- Validate OAuth bearer tokens and the configured scope, and publish protected-resource metadata.
+
+Boundary rules:
+- The endpoint is mapped only when `McpSettings:IsEnabled` is true.
+- MCP uses the external OAuth authority; the application does not issue tokens or accept the REST API key.
+- Tools depend on `IMemoryService`, not repositories.
 
 ### Persistence and Configuration
 
@@ -187,15 +214,19 @@ flowchart LR
 | `GptMemory` | Application service | In-memory domain model with identifier, timestamps, content, source, and decimal confidence | Created with default identifier and creation time; revision preserves creation time |
 | `GptMemoryDataObject` | Persistence boundary | NuciDAL entity with string timestamps in the configured JSON file | Written on each create, revise, or delete through `SaveChanges` |
 | Memory-store file | Deployment environment | JSON array at `dataStoreSettings.memoryStorePath` | Initialised when absent; retained until deleted or replaced externally |
+| MCP token claims | Authentication middleware | Process memory during request validation; never persisted by this application | Request lifetime |
 
 ## 🔌 Interfaces and Integrations
 
 | Interface or Integration | Direction | Contract | Owner | Failure Semantics |
 |--------------------------|-----------|----------|-------|-------------------|
-| Memory REST API | Inbound | `POST`, `GET`, `PUT`, and `DELETE` routes beneath `/Memories` | `MemoriesController` | NuciAPI request processing handles the controller boundary; service exceptions propagate to exception-handling middleware |
+| Memory REST API | Inbound | `POST`, `GET`, `PUT`, and `DELETE` routes beneath `/Memories`; shared API key | `MemoriesController` | NuciAPI request processing handles the controller boundary; service exceptions propagate to exception-handling middleware |
+| MCP Streamable HTTP | Inbound | Stateless JSON-RPC at `/mcp`; OAuth bearer token and required scope | `MemoryTools` and MCP SDK | Missing/invalid tokens receive 401; insufficient scope receives 403; tool/service failures become protocol errors |
+| OAuth authority | Outbound | OpenID Connect discovery and signing keys | `McpAuthenticationExtensions` | Startup/token validation fails when required HTTPS provider configuration is invalid or unavailable |
 | `IFileRepository<GptMemoryDataObject>` | Outbound | NuciDAL repository operations: add, get, get all, update, remove, save changes | `MemoryService` | Repository exceptions are logged and rethrown by the service |
 | JSON file persistence | Outbound | NuciDAL `JsonRepository` at the configured path | Composition and repository | File creation occurs at startup; later repository failures are propagated |
 | Structured logging | Outbound | NuciLog operation/status events with optional file output | `MemoryService` | Logging occurs before and after service operations; logger failure handling is not defined by this repository |
+| MCP SDK | Inbound adapter | Tool discovery, JSON-RPC dispatch and stateless Streamable HTTP | `ServiceCollectionExtensions`, `Startup` and `MemoryTools` | Protocol errors and transport responses are SDK-owned; integration tests verify authentication and client connection behavior |
 
 ## 🔀 Key Flows
 
@@ -246,6 +277,8 @@ Revision is ordered as retrieval, creation-time preservation, update, then save.
 
 ### Security and Privacy
 
+REST actions use the shared API key. The optional MCP boundary uses OAuth bearer validation for issuer, audience, expiration, signature and the configured scope. Protected-resource metadata is public so clients can discover the external authorization server. The application is a resource server, not an authorization server, and does not provide per-user memory isolation.
+
 Every memory action creates `NuciApiAuthorisation.ApiKey` from `SecuritySettings.ApiKey` and gives it to `ProcessRequest`. The API key is a shared secret supplied through the application configuration contract. Memory content, source, confidence, identifiers, and operation counts may reach the JSON store and structured logs; deployment personnel must restrict filesystem access and provide secrets outside source control.
 
 ### Error Handling
@@ -260,6 +293,7 @@ Every memory action creates `NuciApiAuthorisation.ApiKey` from `SecuritySettings
 
 | Configuration Area | Source | Responsibility | Override or Secret Policy |
 |--------------------|--------|----------------|---------------------------|
+| `mcpSettings` | ASP.NET Core configuration, with disabled defaults in `appsettings.json` | MCP endpoint enablement, OAuth authority, resource audience and scope | Enable only with HTTPS authority/resource values; provider setup is external |
 | `securitySettings` | ASP.NET Core configuration, with a template in `appsettings.json` | Shared API key for controller authorisation | Provide the genuine value from a trusted deployment secret source; do not commit it |
 | `dataStoreSettings` | ASP.NET Core configuration | JSON memory-store path | Bound once at startup; path may be relative to the process working directory |
 | `nuciLoggerSettings` | ASP.NET Core configuration | NuciLogger file destination and file-output activation | Bound once at startup; log location must be writable when file output is active |
