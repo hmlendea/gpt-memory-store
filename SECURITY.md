@@ -44,3 +44,11 @@ This project follows coordinated disclosure:
 2. A remediation plan is prepared and validated.
 3. Public disclosure is published after a fix, mitigation, or agreed risk decision is available.
 4. Credit is attributed in accordance with reporter preference and project policy.
+
+## 🔍 Automated Security Scanning
+
+This repository runs automated security scans on every push and pull request to `master`, plus a weekly schedule. The scan includes:
+- **Dependency vulnerability scanning** Checks all NuGet packages for known vulnerabilities using `dotnet list package --vulnerable --include-transitive`
+- **CodeQL static analysis** Performs semantic code analysis for C# to detect security flaws and quality issues
+
+Results are published to the [Security](https://github.com/hmlendea/gpt-memory-store/security) tab and the [Actions](https://github.com/hmlendea/gpt-memory-store/actions/workflows/security.yml) workflow page.
