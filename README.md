@@ -1,6 +1,7 @@
 [![Donate](https://img.shields.io/badge/-%E2%99%A5%20Donate-%23ff69b4)](https://hmlendea.go.ro/funding)
 [![Latest Release](https://img.shields.io/github/v/release/hmlendea/gpt-memory-store)](https://github.com/hmlendea/gpt-memory-store/releases/latest)
 [![Build Status](https://github.com/hmlendea/gpt-memory-store/actions/workflows/dotnet.yml/badge.svg)](https://github.com/hmlendea/gpt-memory-store/actions/workflows/dotnet.yml)
+[![Security Scan](https://github.com/hmlendea/gpt-memory-store/actions/workflows/security.yml/badge.svg)](https://github.com/hmlendea/gpt-memory-store/actions/workflows/security.yml)
 [![License](https://img.shields.io/github/license/hmlendea/gpt-memory-store)](https://github.com/hmlendea/gpt-memory-store/blob/master/LICENSE)
 
 # GPT Memory Store
@@ -215,7 +216,7 @@ dotnet test GptMemoryStore.IntegrationTests/GptMemoryStore.IntegrationTests.cspr
 
 ### Continuous Integration
 
-The `.github/workflows/dotnet.yml` workflow restores dependencies, compiles the solution, and executes the test suite on Ubuntu for pushes and pull requests associated with `master`. The setup, build, and test commands above reproduce those checks locally.
+The `.github/workflows/dotnet.yml` workflow restores dependencies, compiles the solution, and executes the test suite on Ubuntu for pushes and pull requests associated with `master`. The `.github/workflows/security.yml` workflow performs vulnerability scanning and CodeQL analysis on the same triggers plus a weekly schedule. The setup, build, and test commands above reproduce those checks locally.
 
 ### Release
 
